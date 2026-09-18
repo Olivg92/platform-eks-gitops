@@ -20,8 +20,11 @@ Règle d'or : **3 projets finis et documentés valent mieux que 8 repos commenc�
 ## Phase 0 — Setup (1 soirée)
 
 - [ ] Compte GitHub : photo, bio, lien LinkedIn
-- [ ] Compte AWS perso : MFA sur root, utilisateur IAM admin avec MFA, root plus jamais utilisé
+- [x] Compte AWS perso, via la nouvelle inscription AWS à « projets » : pas d'utilisateur root ni IAM, connexion par fournisseur d'identité avec 2FA, région imposée `eu-north-1`
+- [ ] MFA ajouté dans AWS Settings
 - [ ] **AWS Budgets : alerte à 5 $ et 10 $ par mail, AVANT toute ressource**
+- [x] AWS CLI : `aws login --profile perso` (identifiants temporaires 12 h, zéro clé stockée)
+- [x] MCP AWS pour l'assistant IA : lecture seule, toute écriture demande confirmation
 - [x] Outils locaux : `k3d` (ou `kind`), `kubectl`, `helm`, `terraform`, `argocd` CLI, `aws` CLI, `pre-commit`, `tflint`, `checkov`, `kubeconform`
 - [x] Créer le repo `platform-eks-gitops`, y déposer `PLAN.md` et `CLAUDE.md`
 

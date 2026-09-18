@@ -31,3 +31,6 @@ kubeconfig
 .vscode/
 *.swp
 .DS_Store
+
+# Local-only AI assistant instructions
+CLAUDE.local.md

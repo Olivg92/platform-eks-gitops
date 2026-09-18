@@ -14,6 +14,8 @@ Le plan complet et l'avancement sont dans @PLAN.md : le lire avant toute tâche 
 - **Sécurité** : aucun secret, clé ou token dans le repo. Auth AWS en CI uniquement par OIDC.
 - **Confidentialité** : ne jamais mentionner mon employeur, ses hosts, IP, URLs ou données. Tout exemple issu de mon expérience doit être anonymisé.
 - **Local d'abord** : tout doit fonctionner sur k3d avant d'aller sur EKS.
+- **Infra = code** : toute ressource AWS est créée par Terraform, jamais à la main ni via le MCP AWS. Le MCP sert uniquement à lire (doc, inspection, vérification après `make down`).
+- **Compte AWS** : toujours utiliser le profil `perso` (`AWS_PROFILE=perso`), jamais `default`.
 
 ## Façon de travailler
 - Avancer phase par phase selon PLAN.md, une branche + une PR par étape
