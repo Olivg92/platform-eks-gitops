@@ -59,8 +59,8 @@ platform-eks-gitops/
 ### 1.2 Plateforme en local (k3d)
 - [x] `make local-up` : cluster k3d + install ArgoCD + app-of-apps
 - [x] Ingress via **Gateway API** (Envoy Gateway) — ingress-nginx est en fin de vie, montrer qu'on suit l'écosystème
-- [ ] cert-manager
-- [ ] External Secrets Operator (backend local : Vault en mode dev ; sur AWS : Secrets Manager)
+- [x] cert-manager (+ TLS sur le Gateway via une CA locale)
+- [x] External Secrets Operator (backend local : Vault en mode dev ; sur AWS : Secrets Manager)
 - [ ] kube-prometheus-stack (Prometheus, Alertmanager, Grafana)
 - [ ] Sloth (ou Pyrra) pour générer les règles SLO
 - [x] Sync waves ArgoCD pour l'ordre (CRDs → opérateurs → apps)

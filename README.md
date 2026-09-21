@@ -38,9 +38,25 @@ When it finishes:
 
 | What | Where |
 |---|---|
+| Health check | `make local-verify` — applications, gateway, TLS and secrets in one command |
 | Argo CD UI | `make argocd-ui`, then http://localhost:8081 (user `admin`, `make argocd-password`) |
 | HTTP traffic | http://localhost:8080 (404 until an application attaches a route) |
+| HTTPS traffic | `curl -k --resolve platform.local:8443:127.0.0.1 https://platform.local:8443/` |
 | Applications | `make local-status` |
+
+### What runs on the platform
+
+| Component | Role | Wave |
+|---|---|---|
+| Envoy Gateway | Gateway API implementation, the single entry point ([ADR 0003](docs/adr/0003-gateway-api-with-envoy-gateway.md)) | -1 |
+| cert-manager | Issues the TLS certificate of the gateway listener | -1 |
+| External Secrets Operator | Materialises secrets from a store, so none live in git ([ADR 0005](docs/adr/0005-secrets-with-external-secrets-operator.md)) | -1 |
+| Vault (dev mode) | Local stand-in for AWS Secrets Manager | -1 |
+| Gateway, issuer, secret store | The resources those operators consume | 0 and 1 |
+
+Secrets never touch this repository. `gitops/envs/local/secret-store/` declares *which* secret is
+needed; the value is read from Vault, which trusts the operator's ServiceAccount rather than any
+stored token. `make local-verify` prints the value that made the trip.
 
 `make local-down` deletes the cluster. Run `make help` for every target.
 

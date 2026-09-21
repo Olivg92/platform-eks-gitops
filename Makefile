@@ -66,6 +66,10 @@ local-info: ## Print how to reach Argo CD and the gateway
 	@echo "Password: make argocd-password"
 	@echo "Gateway:  http://localhost:8080 (no route attached yet)"
 
+.PHONY: local-verify
+local-verify: ## Check the platform end to end (applications, gateway, secrets)
+	@scripts/verify-local.sh $(ARGOCD_NS)
+
 .PHONY: local-status
 local-status: ## Show Argo CD applications and platform pods
 	@kubectl get applications.argoproj.io -n $(ARGOCD_NS)
