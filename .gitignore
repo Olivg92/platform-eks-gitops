@@ -1,0 +1,36 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+.terraform.tfstate.lock.info
+
+# Kubernetes / cloud credentials
+kubeconfig
+*.kubeconfig
+.kube/
+.aws/
+
+# Secrets and local env
+.env
+.env.*
+*.pem
+*.key
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local-only AI assistant instructions
+CLAUDE.local.md
