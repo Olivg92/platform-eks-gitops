@@ -19,10 +19,10 @@ Règle d'or : **3 projets finis et documentés valent mieux que 8 repos commenc�
 
 ## Phase 0 — Setup (1 soirée)
 
-- [ ] Compte GitHub : photo, bio, lien LinkedIn
+- [x] Compte GitHub : photo, bio, lien LinkedIn
 - [x] Compte AWS perso, via la nouvelle inscription AWS à « projets » : pas d'utilisateur root ni IAM, connexion par fournisseur d'identité avec 2FA, région imposée `eu-north-1`
-- [ ] MFA ajouté dans AWS Settings
-- [ ] **AWS Budgets : alerte à 5 $ et 10 $ par mail, AVANT toute ressource**
+- [x] MFA (TOTP) ajouté dans AWS Settings
+- [x] **AWS Budgets : alertes à 5 $ et 10 $ par mail (crédits exclus), plus une limite de dépenses à 20 $ qui bloque le projet**
 - [x] AWS CLI : `aws login --profile perso` (identifiants temporaires 12 h, zéro clé stockée)
 - [x] MCP AWS pour l'assistant IA : lecture seule, toute écriture demande confirmation
 - [x] Outils locaux : `k3d` (ou `kind`), `kubectl`, `helm`, `terraform`, `argocd` CLI, `aws` CLI, `pre-commit`, `tflint`, `checkov`, `kubeconform`
