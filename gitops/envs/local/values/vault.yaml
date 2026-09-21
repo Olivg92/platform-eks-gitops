@@ -1,3 +1,8 @@
+# Argo CD names the Helm release after the Application (vault-dev), and the chart
+# prefixes every resource with it. Pin the name so manifests can rely on a stable
+# address: vault.vault.svc:8200
+fullnameOverride: vault
+
 # Vault in dev mode: in-memory, auto-unsealed, wiped on every restart.
 # It stands in for AWS Secrets Manager, which the AWS environment uses instead.
 # Never a pattern for anything but a local demo.
