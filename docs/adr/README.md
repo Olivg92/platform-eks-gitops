@@ -6,3 +6,6 @@ New ADRs start from [the template](0000-template.md) and are never rewritten onc
 | # | Decision | Status |
 |---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
+| [0002](0002-app-of-apps-for-platform-components.md) | Use the app-of-apps pattern for platform components | Accepted |
+| [0003](0003-gateway-api-with-envoy-gateway.md) | Route ingress traffic with Gateway API, implemented by Envoy Gateway | Accepted |
+| [0004](0004-bootstrap-argocd-with-helm.md) | Install Argo CD with Helm, then let git take over | Accepted |
