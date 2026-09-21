@@ -49,6 +49,10 @@ local-argocd: ## Install Argo CD with Helm
 local-bootstrap: ## Apply the root Application (app-of-apps)
 	@sed 's|targetRevision: main|targetRevision: $(REVISION)|' \
 		gitops/bootstrap/local/root-app.yaml | kubectl apply -f -
+	@# Applications in git always track `main`. When testing a branch, repoint them.
+	@if [ "$(REVISION)" != "main" ]; then \
+		sleep 10; scripts/dev-follow-revision.sh $(REVISION) $(ARGOCD_NS); \
+	fi
 
 .PHONY: local-wait
 local-wait: ## Wait for every Argo CD Application to become healthy
