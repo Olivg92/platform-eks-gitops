@@ -7,6 +7,10 @@ fullnameOverride: vault
 # It stands in for AWS Secrets Manager, which the AWS environment uses instead.
 # Never a pattern for anything but a local demo.
 server:
+  # The chart defaults to OnDelete to protect a sealed Vault from restarts.
+  # Dev mode has nothing to protect, so let config changes roll out by themselves.
+  updateStrategyType: RollingUpdate
+
   # Configure Vault the way an administrator would, every time the pod starts.
   # Dev mode keeps everything in memory, so this has to be replayed on restart.
   postStart:
