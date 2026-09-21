@@ -57,8 +57,7 @@ local-bootstrap: ## Apply the root Application (app-of-apps)
 .PHONY: local-wait
 local-wait: ## Wait for every Argo CD Application to become healthy
 	@echo "waiting for applications to sync (this pulls charts, give it a few minutes)..."
-	@kubectl wait --for=jsonpath='{.status.health.status}'=Healthy \
-		applications.argoproj.io --all -n $(ARGOCD_NS) --timeout=10m
+	@scripts/wait-for-apps.sh $(ARGOCD_NS) 600
 
 .PHONY: local-info
 local-info: ## Print how to reach Argo CD and the gateway
