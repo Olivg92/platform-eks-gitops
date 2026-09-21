@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Local environment: the shared platform components, unmodified for now.
+# Environment-specific components (Vault in dev mode) and patches land here.
+resources:
+  - ../../platform

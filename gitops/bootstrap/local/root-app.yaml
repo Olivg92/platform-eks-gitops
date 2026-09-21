@@ -1,0 +1,24 @@
+# The only manifest applied by hand (by `make local-up`).
+# Everything else is installed by Argo CD from this repository: the app-of-apps pattern.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-local
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Olivg92/platform-eks-gitops.git
+    targetRevision: main
+    path: gitops/envs/local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

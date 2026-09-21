@@ -1,0 +1,17 @@
+# The single entry point for HTTP traffic into the cluster.
+# Applications attach to it with HTTPRoutes from any namespace.
+# TLS is added in the next PR, once cert-manager is in place.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: platform
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: platform
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All

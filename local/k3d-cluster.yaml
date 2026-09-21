@@ -1,0 +1,27 @@
+# Local cluster definition. Kubernetes version is pinned to the EKS default,
+# so what runs locally matches what runs on AWS.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: platform-local
+image: rancher/k3s:v1.36.4-k3s1
+servers: 1
+agents: 1
+ports:
+  # Gateway API traffic: http://localhost:8080
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
+  - port: 8443:443
+    nodeFilters:
+      - loadbalancer
+options:
+  k3s:
+    extraArgs:
+      # Traefik is disabled: ingress is handled by Envoy Gateway (Gateway API).
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: true

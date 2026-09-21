@@ -3,8 +3,8 @@
 A production-style Kubernetes platform on AWS EKS, fully managed with GitOps:
 infrastructure as code, secrets management, observability with SLOs, and CI with zero static credentials.
 
-> **Status: work in progress.** The repository layout is in place; components are being added step by step.
-> See the [roadmap](#roadmap).
+> **Status: work in progress.** The local platform boots with one command; components are being
+> added step by step. See the [roadmap](#roadmap).
 
 ## Why this project
 
@@ -22,25 +22,39 @@ See [docs/architecture.md](docs/architecture.md) for the target architecture dia
 
 ## Quickstart (local)
 
-_Coming in step 1.2._ The goal is three commands:
+No AWS account needed, and nothing to pay: everything runs in Docker.
 
 ```bash
 git clone https://github.com/Olivg92/platform-eks-gitops.git && cd platform-eks-gitops
-make check-tools
-make local-up
+make check-tools   # docker, k3d, kubectl, helm, ...
+make local-up      # k3d cluster + Argo CD + platform components
 ```
 
-Run `make help` to list all available targets.
+`make local-up` creates a two-node k3d cluster running the same Kubernetes version as EKS,
+installs Argo CD with Helm, and applies a single root Application. Argo CD then installs
+everything else from this repository.
+
+When it finishes:
+
+| What | Where |
+|---|---|
+| Argo CD UI | `make argocd-ui`, then http://localhost:8081 (user `admin`, `make argocd-password`) |
+| HTTP traffic | http://localhost:8080 (404 until an application attaches a route) |
+| Applications | `make local-status` |
+
+`make local-down` deletes the cluster. Run `make help` for every target.
 
 ## Repository layout
 
 | Path | Content |
 |---|---|
+| [`local/`](local/) | k3d cluster definition and Argo CD values for the local environment |
 | [`terraform/`](terraform/) | AWS infrastructure: state bootstrap, modules (VPC, EKS, IAM), demo environment |
 | [`gitops/`](gitops/) | Everything ArgoCD deploys: app-of-apps, platform components, applications |
 | [`apps/demo-api/`](apps/demo-api/) | Demo API used to showcase SLOs |
 | [`docs/`](docs/) | Architecture, [decision records](docs/adr/), runbooks |
 | [`.github/workflows/`](.github/workflows/) | CI pipelines |
+| [`scripts/`](scripts/) | Development helpers, not part of the GitOps flow |
 
 ## Technical choices
 
@@ -58,7 +72,8 @@ _To be written: multi-AZ, Karpenter, backups with Velero, policies with Kyverno,
 ## Roadmap
 
 - [x] Repository layout, linting and secret scanning (pre-commit)
-- [ ] Local platform on k3d: ArgoCD, Gateway API, cert-manager, External Secrets, Prometheus stack
+- [x] Local platform on k3d: Argo CD (app-of-apps) and Gateway API with Envoy Gateway
+- [ ] cert-manager, External Secrets Operator, Prometheus stack and SLO tooling
 - [ ] Demo API with SLOs, burn-rate alerts, dashboard and runbooks
 - [ ] AWS EKS with Terraform (no NAT, Spot nodes, Pod Identity)
 - [ ] CI with GitHub Actions and OIDC authentication to AWS
@@ -67,5 +82,10 @@ _To be written: multi-AZ, Karpenter, backups with Velero, policies with Kyverno,
 ## Development
 
 ```bash
-make lint   # runs all pre-commit checks (formatting, YAML, Terraform, secrets)
+make lint   # all pre-commit checks: formatting, YAML, Terraform, manifests, secrets
 ```
+
+Applications committed here track `main`, which is the source of truth. To try a branch before
+merging it, push the branch and run `make local-up REVISION=my-branch`: the root Application
+follows that branch and [`scripts/dev-follow-revision.sh`](scripts/dev-follow-revision.sh)
+repoints the others at it.

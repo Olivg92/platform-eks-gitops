@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# One entry per platform component. Install order is driven by sync waves,
+# not by the order of this list.
+resources:
+  - envoy-gateway/application.yaml
+  - gateway/application.yaml

@@ -1,5 +1,6 @@
-# ArgoCD bootstrap
+# Argo CD bootstrap
 
-Root `Application` (app-of-apps) pointing at `gitops/platform` and `gitops/apps`.
+The root `Application` (app-of-apps), one per environment. This is the only manifest applied by
+hand, by `make local-up`. It points at `gitops/envs/<env>`, and Argo CD takes over from there.
 
-_Planned in step 1.2._
+See [ADR 0002](../../docs/adr/0002-app-of-apps-for-platform-components.md).

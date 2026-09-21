@@ -1,0 +1,26 @@
+# Argo CD values for the local cluster only.
+# The AWS environment gets its own values file in step 1.4.
+configs:
+  params:
+    # TLS is terminated by `kubectl port-forward`, not by Argo CD itself.
+    server.insecure: true
+  cm:
+    # Show the app-of-apps hierarchy in the UI.
+    application.resourceTrackingMethod: annotation
+    timeout.reconciliation: 60s
+
+# A single replica of everything: this is a laptop, not production.
+controller:
+  replicas: 1
+repoServer:
+  replicas: 1
+server:
+  replicas: 1
+applicationSet:
+  replicas: 1
+redis:
+  enabled: true
+dex:
+  enabled: false
+notifications:
+  enabled: false

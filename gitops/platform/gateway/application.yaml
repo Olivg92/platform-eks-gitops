@@ -1,0 +1,27 @@
+# Wave 0: resources that need the operator from wave -1 to be running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Olivg92/platform-eks-gitops.git
+    targetRevision: main
+    path: gitops/platform/gateway/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: envoy-gateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The Gateway API CRDs may not exist yet on the very first sync.
+      - SkipDryRunOnMissingResource=true
