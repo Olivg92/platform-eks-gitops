@@ -1,0 +1,8 @@
+# Envoy Gateway runs a single control-plane replica: enough for a demo cluster.
+deployment:
+  replicas: 1
+  envoyGateway:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi

@@ -32,3 +32,14 @@ repos:
         args: [--args=--config=__GIT_WORKING_DIR__/.tflint.hcl]
       - id: terraform_checkov
         args: [--args=--quiet, --args=--compact]
+
+  - repo: local
+    hooks:
+      # kubeconform needs the Kubernetes schemas, so it runs from the local install
+      # (see `make check-tools`) rather than from a pinned hook repository.
+      - id: kubeconform
+        name: kubeconform
+        entry: kubeconform -strict -summary -ignore-missing-schemas
+        language: system
+        files: ^gitops/.*\.ya?ml$
+        exclude: (values|kustomization)\.ya?ml$

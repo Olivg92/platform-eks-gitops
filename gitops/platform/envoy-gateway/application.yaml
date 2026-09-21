@@ -1,0 +1,34 @@
+# Wave -1: operators and their CRDs, installed before anything that uses them.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: envoy-gateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    # The upstream chart, pinned. It also installs the Gateway API CRDs.
+    - repoURL: docker.io/envoyproxy
+      chart: gateway-helm
+      targetRevision: 1.9.1
+      helm:
+        valueFiles:
+          - $values/gitops/platform/envoy-gateway/values.yaml
+    # Our values live in this repository, next to the Application.
+    - repoURL: https://github.com/Olivg92/platform-eks-gitops.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: envoy-gateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
