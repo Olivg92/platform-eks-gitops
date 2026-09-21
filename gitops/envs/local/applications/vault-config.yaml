@@ -1,8 +1,8 @@
-# Wave 0: resources that need the operator from wave -1 to be running.
+# Wave 0: configures the dev Vault (Kubernetes auth, policy, demo secret).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gateway
+  name: vault-config
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
@@ -13,15 +13,14 @@ spec:
   source:
     repoURL: https://github.com/Olivg92/platform-eks-gitops.git
     targetRevision: main
-    path: gitops/platform/gateway/manifests
+    path: gitops/envs/local/vault-config
   destination:
     server: https://kubernetes.default.svc
-    namespace: envoy-gateway-system
+    namespace: vault
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      # The Gateway API CRDs may not exist yet on the very first sync.
       - SkipDryRunOnMissingResource=true

@@ -13,6 +13,25 @@ REVISION="${1:?usage: $0 <branch> [namespace]}"
 NS="${2:-argocd}"
 ROOT_APP="root-local"
 
+# The root application must run first: it is what creates the other applications.
+# It may be paused from a previous run, so resume it before waiting for them.
+echo "letting $ROOT_APP create its applications"
+kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
+  -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}' >/dev/null
+
+# Argo CD caches git state, so ask for a fresh read instead of waiting a minute.
+kubectl annotate application "$ROOT_APP" -n "$NS" \
+  argocd.argoproj.io/refresh=hard --overwrite >/dev/null
+sleep 5
+
+expected=$(kubectl get application "$ROOT_APP" -n "$NS" \
+  -o jsonpath='{.status.resources[*].name}' | wc -w)
+for _ in $(seq 1 30); do
+  found=$(kubectl get applications -n "$NS" -o name | grep -vc "/$ROOT_APP$" || true)
+  (( found > 0 && found >= expected )) && break
+  sleep 2
+done
+
 echo "pausing auto-sync on $ROOT_APP so it does not revert the patches"
 kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
   -p '{"spec":{"syncPolicy":{"automated":null}}}' >/dev/null

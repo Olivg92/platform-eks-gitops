@@ -1,0 +1,26 @@
+# Vault in dev mode: in-memory, auto-unsealed, wiped on every restart.
+# It stands in for AWS Secrets Manager, which the AWS environment uses instead.
+# Never a pattern for anything but a local demo.
+server:
+  dev:
+    enabled: true
+    # Well-known dev token. Vault dev mode requires one, it grants access to an
+    # in-memory instance reachable only from inside this k3d cluster.
+    devRootToken: root
+  standalone:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  dataStorage:
+    enabled: false
+  auditStorage:
+    enabled: false
+ui:
+  enabled: false
+injector:
+  # External Secrets Operator pulls secrets; the sidecar injector is not needed.
+  enabled: false
+csi:
+  enabled: false
