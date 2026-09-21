@@ -143,7 +143,7 @@ Version **générique**, aucun code ni donnée de l'employeur.
 ## Phase 5 — Finalisation
 
 - [ ] README de profil GitHub : 2 phrases de positionnement, 3 projets, lien site
-- [ ] Épingler les 3 repos
+- [x] Épingler les 3 repos (fait dès le départ, pour que le profil soit présentable)
 - [ ] Mettre à jour les 3 versions de CV avec les liens
 - [ ] Post LinkedIn de lancement (1 projet = 1 post, avec schéma)
 
