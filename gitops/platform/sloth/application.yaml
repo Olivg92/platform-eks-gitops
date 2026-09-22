@@ -1,30 +1,28 @@
-# Wave -1: operators and their CRDs, installed before anything that uses them.
+# Wave 0: generates Prometheus recording and alerting rules from SLO objects.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: envoy-gateway
+  name: sloth
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-wave: "0"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   sources:
-    # The upstream chart, pinned. It also installs the Gateway API CRDs.
-    - repoURL: docker.io/envoyproxy
-      chart: gateway-helm
-      targetRevision: 1.9.1
+    - repoURL: https://slok.github.io/sloth
+      chart: sloth
+      targetRevision: 0.16.0
       helm:
         valueFiles:
-          - $values/gitops/platform/envoy-gateway/values.yaml
-    # Our values live in this repository, next to the Application.
+          - $values/gitops/platform/sloth/values.yaml
     - repoURL: https://github.com/Olivg92/platform-eks-gitops.git
       targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: envoy-gateway-system
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true

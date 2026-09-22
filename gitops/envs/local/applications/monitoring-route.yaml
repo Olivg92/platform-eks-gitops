@@ -1,11 +1,11 @@
-# Wave -1: how to reach Vault, and one ExternalSecret proving the chain works.
+# Wave 1: routes, once the workloads they point at are running.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: secret-store
+  name: monitoring-route
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-wave: "1"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -13,10 +13,10 @@ spec:
   source:
     repoURL: https://github.com/Olivg92/platform-eks-gitops.git
     targetRevision: main
-    path: gitops/envs/local/secret-store
+    path: gitops/envs/local/monitoring-route
   destination:
     server: https://kubernetes.default.svc
-    namespace: demo
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true

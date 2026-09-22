@@ -1,0 +1,10 @@
+# Sloth turns a short SLO definition into the multi-window burn-rate rules
+# that would be tedious and error-prone to write by hand.
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+# Write generated PrometheusRules with the labels Prometheus already watches.
+commonPlugins:
+  enabled: false
