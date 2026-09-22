@@ -84,6 +84,11 @@ argocd-password: ## Print the initial Argo CD admin password
 	@kubectl get secret -n $(ARGOCD_NS) argocd-initial-admin-secret \
 		-o jsonpath='{.data.password}' | base64 -d; echo
 
+.PHONY: local-restart
+local-restart: ## Stop and start the cluster (refreshes node DNS after a network change)
+	k3d cluster stop $(CLUSTER_NAME)
+	k3d cluster start $(CLUSTER_NAME)
+
 .PHONY: local-down
 local-down: ## Delete the k3d cluster
 	k3d cluster delete $(CLUSTER_NAME)

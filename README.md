@@ -60,6 +60,14 @@ stored token. `make local-verify` prints the value that made the trip.
 
 `make local-down` deletes the cluster. Run `make help` for every target.
 
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Pods stuck in `ImagePullBackOff`, events showing `lookup <registry>: Try again` | k3d nodes keep the DNS servers they were created with. Moving between networks, or connecting to a VPN, leaves them pointing at a resolver they can no longer reach. | `make local-restart` |
+| `make local-up` fails on the Argo CD install with `context deadline exceeded` | Same cause: the pods never become ready because their images cannot be pulled. | `make local-restart`, then `make local-up` again |
+| An application stays `OutOfSync` while everything is healthy | Expected while testing a branch: the root application is paused on purpose (see [Development](#development)). | `make local-bootstrap` once the branch is merged |
+
 ## Repository layout
 
 | Path | Content |
