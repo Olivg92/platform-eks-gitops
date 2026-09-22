@@ -28,7 +28,11 @@ expected=$(kubectl get application "$ROOT_APP" -n "$NS" \
   -o jsonpath='{.status.resources[*].name}' | wc -w)
 for _ in $(seq 1 30); do
   found=$(kubectl get applications -n "$NS" -o name | grep -vc "/$ROOT_APP$" || true)
-  (( found > 0 && found >= expected )) && break
+  # `(( ... )) && break` would return non-zero when the condition is false,
+  # which `set -e` turns into an exit. Spell the test out instead.
+  if (( found > 0 && found >= expected )); then
+    break
+  fi
   sleep 2
 done
 
