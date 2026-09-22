@@ -61,8 +61,8 @@ platform-eks-gitops/
 - [x] Ingress via **Gateway API** (Envoy Gateway) — ingress-nginx est en fin de vie, montrer qu'on suit l'écosystème
 - [x] cert-manager (+ TLS sur le Gateway via une CA locale)
 - [x] External Secrets Operator (backend local : Vault en mode dev ; sur AWS : Secrets Manager)
-- [ ] kube-prometheus-stack (Prometheus, Alertmanager, Grafana)
-- [ ] Sloth (ou Pyrra) pour générer les règles SLO
+- [x] kube-prometheus-stack (Prometheus, Alertmanager, Grafana derrière le Gateway, mot de passe admin issu de Vault)
+- [x] Sloth pour générer les règles SLO (utilisé pleinement en 1.3)
 - [x] Sync waves ArgoCD pour l'ordre (CRDs → opérateurs → apps)
 
 ### 1.3 Appli de démo + SLO

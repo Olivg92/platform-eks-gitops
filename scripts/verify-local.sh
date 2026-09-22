@@ -36,8 +36,10 @@ gateway_http() {
 }
 
 gateway_https() {
-  issuer=$(curl -sk --resolve platform.local:8443:127.0.0.1 -v --max-time 10 \
-    https://platform.local:8443/ 2>&1 | sed -n 's/^\* *issuer: //p' | head -1)
+  # Any subdomain: the listener serves a wildcard certificate for *.platform.local,
+  # which by design does not cover the bare domain.
+  issuer=$(curl -sk --resolve unrouted.platform.local:8443:127.0.0.1 -v --max-time 10 \
+    https://unrouted.platform.local:8443/ 2>&1 | sed -n 's/^\* *issuer: //p' | head -1)
   [ -n "$issuer" ] && echo "TLS terminated, issuer $issuer" || { echo "no TLS handshake"; return 1; }
 }
 
