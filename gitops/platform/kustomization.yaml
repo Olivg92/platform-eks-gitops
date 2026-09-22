@@ -1,7 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# One entry per platform component. Install order is driven by sync waves,
-# not by the order of this list.
+# Components shared by every environment. Install order comes from sync waves,
+# not from this list. Environment-specific applications live in gitops/envs/<env>.
 resources:
   - envoy-gateway/application.yaml
-  - gateway/application.yaml
+  - cert-manager/application.yaml
+  - external-secrets/application.yaml

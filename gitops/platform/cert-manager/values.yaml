@@ -1,0 +1,16 @@
+crds:
+  enabled: true
+
+config:
+  apiVersion: controller.config.cert-manager.io/v1alpha1
+  kind: ControllerConfiguration
+  # Watch Gateway resources and issue certificates for their listeners,
+  # the Gateway API equivalent of the Ingress annotation.
+  gatewayAPI:
+    enabled: true
+
+replicaCount: 1
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi

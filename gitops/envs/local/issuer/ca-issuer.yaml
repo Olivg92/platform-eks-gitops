@@ -1,0 +1,9 @@
+# The issuer the Gateway points at. cert-manager signs listener certificates
+# with the CA above and writes them to the secret the Gateway references.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: platform-ca
+spec:
+  ca:
+    secretName: platform-ca

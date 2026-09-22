@@ -42,4 +42,5 @@ repos:
         entry: kubeconform -strict -summary -ignore-missing-schemas
         language: system
         files: ^gitops/.*\.ya?ml$
-        exclude: (values|kustomization)\.ya?ml$
+        # Helm values and kustomize files are not Kubernetes manifests.
+        exclude: ((^|/)(values|kustomization)\.ya?ml$|/values/)

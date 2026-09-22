@@ -1,0 +1,59 @@
+# Argo CD names the Helm release after the Application (vault-dev), and the chart
+# prefixes every resource with it. Pin the name so manifests can rely on a stable
+# address: vault.vault.svc:8200
+fullnameOverride: vault
+
+# Vault in dev mode: in-memory, auto-unsealed, wiped on every restart.
+# It stands in for AWS Secrets Manager, which the AWS environment uses instead.
+# Never a pattern for anything but a local demo.
+server:
+  # The chart defaults to OnDelete to protect a sealed Vault from restarts.
+  # Dev mode has nothing to protect, so let config changes roll out by themselves.
+  updateStrategyType: RollingUpdate
+
+  # Configure Vault the way an administrator would, every time the pod starts.
+  # Dev mode keeps everything in memory, so this has to be replayed on restart.
+  postStart:
+    - /bin/sh
+    - -ec
+    - |
+      export VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root
+      until vault status >/dev/null 2>&1; do sleep 2; done
+
+      # Workload identity rather than a shared token: Vault trusts the
+      # ServiceAccount of External Secrets Operator. Same idea as EKS Pod Identity.
+      vault auth enable kubernetes 2>/dev/null || true
+      vault write auth/kubernetes/config kubernetes_host="https://kubernetes.default.svc"
+
+      printf 'path "secret/data/*" { capabilities = ["read"] }\npath "secret/metadata/*" { capabilities = ["read", "list"] }\n' \
+        | vault policy write external-secrets -
+
+      vault write auth/kubernetes/role/external-secrets \
+        bound_service_account_names=external-secrets \
+        bound_service_account_namespaces=external-secrets \
+        policies=external-secrets ttl=1h
+
+      # One demo secret, so the whole chain can be verified end to end.
+      vault kv put secret/demo message="stored in Vault, never in git"
+  dev:
+    enabled: true
+    # Well-known dev token. Vault dev mode requires one, it grants access to an
+    # in-memory instance reachable only from inside this k3d cluster.
+    devRootToken: root
+  standalone:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  dataStorage:
+    enabled: false
+  auditStorage:
+    enabled: false
+ui:
+  enabled: false
+injector:
+  # External Secrets Operator pulls secrets; the sidecar injector is not needed.
+  enabled: false
+csi:
+  enabled: false

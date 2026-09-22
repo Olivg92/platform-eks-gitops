@@ -66,6 +66,10 @@ local-info: ## Print how to reach Argo CD and the gateway
 	@echo "Password: make argocd-password"
 	@echo "Gateway:  http://localhost:8080 (no route attached yet)"
 
+.PHONY: local-verify
+local-verify: ## Check the platform end to end (applications, gateway, secrets)
+	@scripts/verify-local.sh $(ARGOCD_NS)
+
 .PHONY: local-status
 local-status: ## Show Argo CD applications and platform pods
 	@kubectl get applications.argoproj.io -n $(ARGOCD_NS)
@@ -79,6 +83,11 @@ argocd-ui: ## Port-forward the Argo CD UI to http://localhost:8081
 argocd-password: ## Print the initial Argo CD admin password
 	@kubectl get secret -n $(ARGOCD_NS) argocd-initial-admin-secret \
 		-o jsonpath='{.data.password}' | base64 -d; echo
+
+.PHONY: local-restart
+local-restart: ## Stop and start the cluster (refreshes node DNS after a network change)
+	k3d cluster stop $(CLUSTER_NAME)
+	k3d cluster start $(CLUSTER_NAME)
 
 .PHONY: local-down
 local-down: ## Delete the k3d cluster

@@ -1,0 +1,18 @@
+# The platform certificate authority. Browsers will warn about it, which is
+# expected locally: on AWS this is replaced by a Let's Encrypt issuer.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: platform-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: platform-local-ca
+  secretName: platform-ca
+  duration: 8760h   # 1 year
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

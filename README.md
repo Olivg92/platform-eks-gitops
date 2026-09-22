@@ -38,11 +38,35 @@ When it finishes:
 
 | What | Where |
 |---|---|
+| Health check | `make local-verify` — applications, gateway, TLS and secrets in one command |
 | Argo CD UI | `make argocd-ui`, then http://localhost:8081 (user `admin`, `make argocd-password`) |
 | HTTP traffic | http://localhost:8080 (404 until an application attaches a route) |
+| HTTPS traffic | `curl -k --resolve platform.local:8443:127.0.0.1 https://platform.local:8443/` |
 | Applications | `make local-status` |
 
+### What runs on the platform
+
+| Component | Role | Wave |
+|---|---|---|
+| Envoy Gateway | Gateway API implementation, the single entry point ([ADR 0003](docs/adr/0003-gateway-api-with-envoy-gateway.md)) | -1 |
+| cert-manager | Issues the TLS certificate of the gateway listener | -1 |
+| External Secrets Operator | Materialises secrets from a store, so none live in git ([ADR 0005](docs/adr/0005-secrets-with-external-secrets-operator.md)) | -1 |
+| Vault (dev mode) | Local stand-in for AWS Secrets Manager | -1 |
+| Gateway, issuer, secret store | The resources those operators consume | 0 and 1 |
+
+Secrets never touch this repository. `gitops/envs/local/secret-store/` declares *which* secret is
+needed; the value is read from Vault, which trusts the operator's ServiceAccount rather than any
+stored token. `make local-verify` prints the value that made the trip.
+
 `make local-down` deletes the cluster. Run `make help` for every target.
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Pods stuck in `ImagePullBackOff`, events showing `lookup <registry>: Try again` | k3d nodes keep the DNS servers they were created with. Moving between networks, or connecting to a VPN, leaves them pointing at a resolver they can no longer reach. | `make local-restart` |
+| `make local-up` fails on the Argo CD install with `context deadline exceeded` | Same cause: the pods never become ready because their images cannot be pulled. | `make local-restart`, then `make local-up` again |
+| An application stays `OutOfSync` while everything is healthy | Expected while testing a branch: the root application is paused on purpose (see [Development](#development)). | `make local-bootstrap` once the branch is merged |
 
 ## Repository layout
 
