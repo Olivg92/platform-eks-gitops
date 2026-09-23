@@ -59,6 +59,29 @@ When it finishes:
 | [`demo-api`](apps/demo-api/) | Small Python API with an SLO, and a switch to make it fail on demand | 1 |
 | Gateway, issuer, secret store, routes | The resources those operators consume | -1 to 1 |
 
+### Service level objectives
+
+The demo API promises two things, declared in [one short object](gitops/apps/demo-api/base/slo.yaml)
+that Sloth expands into 30 recording rules and 4 alerts:
+
+| Objective | Target | Error budget over 30 days |
+|---|---|---|
+| Requests answered without a 5xx | 99.5% | about 3h36m of total failure |
+| Requests answered in under 300ms | 99% | about 7h12m of slow requests |
+
+Alerting is multi-window burn-rate: a fast pair of windows pages, a slow pair opens a ticket, and
+each alert links to [its runbook](docs/runbooks/). Both are reproducible on demand:
+
+```bash
+make demo-break RATE=0.2            # 20% of requests fail, on every pod
+make demo-load SECONDS=120 RPS=8    # traffic through the gateway
+# watch the budget drain in Grafana: demo-api / SLO
+make demo-fix
+```
+
+See [ADR 0008](docs/adr/0008-slo-definitions-for-the-demo-api.md) for why these numbers, and why
+latency is counted from a histogram bucket rather than from a percentile.
+
 Install order is expressed with Argo CD sync waves: operators and CRDs first (-2), then the stores
 and issuers they need (-1), then the components that consume them (0), then routes and workloads (1).
 

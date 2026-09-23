@@ -68,9 +68,9 @@ platform-eks-gitops/
 ### 1.3 Appli de démo + SLO
 - [x] Petite API Python (FastAPI) exposant `/metrics` (latence, erreurs), avec `/chaos` pour injecter erreurs et latence
 - [x] Manifestes kustomize (base partagée + surcouche locale), déployés par ArgoCD, route HTTPS et ServiceMonitor
-- [ ] SLO disponibilité 99,5 % et latence p95 < 300 ms, alertes **multi-window burn-rate**
-- [ ] Dashboard Grafana versionné (JSON dans le repo)
-- [ ] Un runbook par alerte dans `docs/runbooks/`
+- [x] SLO disponibilité 99,5 % et latence (99 % sous 300 ms), alertes **multi-window burn-rate** générées par Sloth
+- [x] Dashboard Grafana versionné (JSON dans le repo, livré avec l'appli)
+- [x] Un runbook par alerte dans `docs/runbooks/`
 
 ### 1.4 AWS EKS avec Terraform
 - [ ] `terraform/bootstrap` : bucket S3 versionné + chiffré pour le state
