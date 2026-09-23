@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": {
     "from": "now-1h",
@@ -30,19 +30,33 @@
         "refresh": 1,
         "includeAll": false,
         "current": {}
+      },
+      {
+        "name": "window",
+        "label": "SLI window",
+        "type": "custom",
+        "query": "1h,6h,1d,7d,30d,90d,1y",
+        "options": [],
+        "refresh": 0,
+        "includeAll": false,
+        "current": {
+          "text": "30d",
+          "value": "30d",
+          "selected": true
+        }
       }
     ]
   },
   "panels": [
     {
       "id": 8,
-      "title": "SLI over 30 days",
+      "title": "SLI over $window",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "What the service actually delivered over the SLO period, to compare with the objective next to it. Sloth records the error ratio, so this is its complement.",
+      "description": "What the service actually delivered over the selected window, to compare with the objective next to it. Averaged from the 5-minute ratios, the same way Sloth builds its 30-day SLI. A window longer than the Prometheus retention only covers the data that is still stored.",
       "gridPos": {
         "h": 5,
         "w": 5,
@@ -57,7 +71,7 @@
           },
           "refId": "A",
           "legendFormat": "SLI",
-          "expr": "1 - slo:sli_error:ratio_rate30d{sloth_service=\"demo-api\", sloth_slo=\"$slo\"}"
+          "expr": "1 - avg_over_time(slo:sli_error:ratio_rate5m{sloth_service=\"demo-api\", sloth_slo=\"$slo\"}[$window])"
         }
       ],
       "fieldConfig": {
