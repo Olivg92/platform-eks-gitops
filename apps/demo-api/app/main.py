@@ -56,12 +56,14 @@ CHAOS_LATENCY.set(chaos.latency_ms / 1000)
 
 @app.middleware("http")
 async def record_metrics(request: Request, call_next):
-    route = request.scope.get("route")
-    # Unmatched paths share a single label value, so a scanner hitting random
-    # URLs cannot blow up the number of time series.
-    label = getattr(route, "path", "unmatched")
     start = time.perf_counter()
     response = await call_next(request)
+    # The route is only known once the router downstream has matched it, so it
+    # has to be read after the call, not before: reading it earlier labels every
+    # single request as "unmatched".
+    # Unmatched paths keep that shared label value, so a scanner hitting random
+    # URLs cannot blow up the number of time series.
+    label = getattr(request.scope.get("route"), "path", "unmatched")
     if label != "/metrics":
         DURATION.labels(request.method, label).observe(time.perf_counter() - start)
         REQUESTS.labels(request.method, label, str(response.status_code)).inc()

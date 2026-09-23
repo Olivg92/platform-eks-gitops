@@ -5,3 +5,15 @@ resources:
   - deployment.yaml
   - service.yaml
   - servicemonitor.yaml
+  - slo.yaml
+
+configMapGenerator:
+  # The Grafana sidecar imports any ConfigMap labelled grafana_dashboard=1,
+  # so the dashboard ships with the application instead of with the platform.
+  - name: demo-api-slo-dashboard
+    files:
+      - dashboards/demo-api-slo.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      disableNameSuffixHash: true

@@ -35,6 +35,12 @@ grafana:
     passwordKey: admin-password
   persistence:
     enabled: false
+  sidecar:
+    dashboards:
+      # Applications ship their dashboard as a ConfigMap in their own namespace,
+      # labelled grafana_dashboard=1. Without this, only the monitoring namespace
+      # would be watched and every team would have to ask the platform to host it.
+      searchNamespace: ALL
   resources:
     requests:
       cpu: 50m

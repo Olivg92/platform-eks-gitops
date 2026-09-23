@@ -72,6 +72,18 @@ demo-image: ## Build the demo API image and import it into the k3d cluster
 	k3d image import demo-api:dev --cluster $(CLUSTER_NAME)
 	kubectl rollout restart deployment/demo-api -n demo 2>/dev/null || true
 
+.PHONY: demo-load
+demo-load: ## Send traffic to the demo API (make demo-load SECONDS=120 RPS=10)
+	@scripts/demo-traffic.sh load $(or $(SECONDS),60) $(or $(RPS),5)
+
+.PHONY: demo-break
+demo-break: ## Make the demo API fail (make demo-break RATE=0.3 LATENCY=0)
+	@scripts/demo-traffic.sh break $(or $(RATE),0.3) $(or $(LATENCY),0)
+
+.PHONY: demo-fix
+demo-fix: ## Stop the injected failures
+	@scripts/demo-traffic.sh fix
+
 .PHONY: local-verify
 local-verify: ## Check the platform end to end (applications, gateway, secrets)
 	@scripts/verify-local.sh $(ARGOCD_NS)

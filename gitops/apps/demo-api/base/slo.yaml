@@ -1,0 +1,64 @@
+# Two objectives, deliberately modest, so the error budget is small enough to be
+# burned through in a demo. Sloth expands this into recording rules over seven
+# windows plus two multi-window burn-rate alerts per objective.
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
+  name: demo-api
+  namespace: demo
+spec:
+  service: demo-api
+  labels:
+    owner: platform
+  slos:
+    - name: availability
+      objective: 99.5
+      description: >-
+        Requests to / answered without a server error. 99.5% over 30 days leaves
+        an error budget of about 3h36m of total unavailability.
+      sli:
+        events:
+          # `or on() vector(0)` matters: with no errors at all the inner sum returns
+          # no series, the division yields nothing, and the SLI would simply not exist.
+          errorQuery: sum(rate(http_requests_total{job="demo-api", route="/", status=~"5.."}[{{.window}}])) or on() vector(0)
+          totalQuery: sum(rate(http_requests_total{job="demo-api", route="/"}[{{.window}}]))
+      alerting:
+        name: DemoApiAvailabilityBudgetBurn
+        labels:
+          service: demo-api
+        annotations:
+          summary: demo-api is burning its availability error budget
+          runbook_url: https://github.com/Olivg92/platform-eks-gitops/blob/main/docs/runbooks/demo-api-availability.md
+        pageAlert:
+          labels:
+            severity: critical
+        ticketAlert:
+          labels:
+            severity: warning
+
+    - name: latency
+      objective: 99
+      description: >-
+        Requests to / answered in under 300ms. Measured from the histogram
+        bucket, not from a percentile, so the SLI stays exact.
+      sli:
+        events:
+          errorQuery: >-
+            (sum(rate(http_request_duration_seconds_count{job="demo-api", route="/"}[{{.window}}]))
+            -
+            sum(rate(http_request_duration_seconds_bucket{job="demo-api", route="/", le="0.3"}[{{.window}}])))
+            or on() vector(0)
+          totalQuery: sum(rate(http_request_duration_seconds_count{job="demo-api", route="/"}[{{.window}}]))
+      alerting:
+        name: DemoApiLatencyBudgetBurn
+        labels:
+          service: demo-api
+        annotations:
+          summary: demo-api is burning its latency error budget
+          runbook_url: https://github.com/Olivg92/platform-eks-gitops/blob/main/docs/runbooks/demo-api-latency.md
+        pageAlert:
+          labels:
+            severity: critical
+        ticketAlert:
+          labels:
+            severity: warning
