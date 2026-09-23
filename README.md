@@ -38,7 +38,7 @@ When it finishes:
 
 | What | Where |
 |---|---|
-| Health check | `make local-verify` — applications, gateway, TLS and secrets in one command |
+| Health check | `make local-verify`: applications, gateway, TLS and secrets in one command |
 | Argo CD UI | `make argocd-ui`, then http://localhost:8081 (user `admin`, `make argocd-password`) |
 | HTTP traffic | http://localhost:8080 (404 until an application attaches a route) |
 | HTTPS traffic | `curl -k --resolve grafana.platform.local:8443:127.0.0.1 https://grafana.platform.local:8443/` |
@@ -74,7 +74,7 @@ One manifest is applied by hand; Argo CD deploys and reconciles everything else.
 
 Grafana, reached through the platform gateway over HTTPS, with the dashboards the monitoring
 stack ships. The certificate comes from the cluster's own authority, and the admin password was
-generated in the secret store — it exists nowhere in this repository.
+generated in the secret store, so it exists nowhere in this repository.
 
 ![Grafana dashboards behind the gateway](docs/images/grafana-dashboards.png)
 

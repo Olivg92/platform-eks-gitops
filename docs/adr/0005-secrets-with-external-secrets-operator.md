@@ -17,7 +17,7 @@ without ever containing its value.
    private key becomes a single point of failure to back up.
 3. **SOPS with age or KMS**: same idea with more flexibility, and the same drawback: the encrypted
    material is versioned forever, so a leaked key exposes the whole history.
-4. **External Secrets Operator**: the repository holds only a reference — "read key X from store Y".
+4. **External Secrets Operator**: the repository holds only a reference, "read key X from store Y".
    Values live in a dedicated secret store and are rotated there, with no commit involved.
 
 ## Decision
@@ -43,5 +43,5 @@ in memory, so the auth method, the policy and the demo secret are replayed on ev
 - One more operator to run, and an outage of the store means new secrets cannot be materialised
   (existing ones keep working, since they are already Kubernetes Secrets).
 - The local Vault is a demo: in memory, single replica, unsealed automatically, wiped on restart.
-  Nothing about it is a production pattern, and that is deliberate — the production story is
+  Nothing about it is a production pattern, and that is deliberate. The production story is
   Secrets Manager plus Pod Identity.
