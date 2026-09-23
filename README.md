@@ -71,7 +71,8 @@ that Sloth expands into 30 recording rules and 4 alerts:
 | Requests answered without a 5xx | 99.5% | about 3h36m of total failure |
 | Requests answered in under 300ms | 99% | about 7h12m of slow requests |
 
-Alerting is multi-window burn-rate: a fast pair of windows pages, a slow pair opens a ticket, and
+A one-request-per-second probe runs next to the application: with no traffic at all the SLI is
+0/0, and the error budget becomes unreadable. Alerting is multi-window burn-rate: a fast pair of windows pages, a slow pair opens a ticket, and
 each alert links to [its runbook](docs/runbooks/). Both are reproducible on demand:
 
 ```bash

@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: demo
 resources:
   - deployment.yaml
+  - traffic-generator.yaml
   - service.yaml
   - servicemonitor.yaml
   - slo.yaml

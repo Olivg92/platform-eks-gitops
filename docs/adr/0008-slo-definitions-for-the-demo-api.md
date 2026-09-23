@@ -50,6 +50,11 @@ during a slow leak that eats the month's budget.
 - The SLI queries have to tolerate an empty numerator: with no errors at all,
   `sum(rate(...))` returns no series and the ratio would not exist, so `or on() vector(0)` is
   part of the definition rather than a detail.
+- **An SLI needs traffic to exist.** With no requests at all the ratio is 0/0, which Prometheus
+  records as NaN, and Sloth builds its 30-day SLI as the average of the 5-minute ones, so a single
+  NaN makes the error budget unreadable for the whole period. A one-request-per-second synthetic
+  probe runs alongside the application to keep the denominator non-zero. Production platforms add
+  blackbox probes for the same reason: "no traffic" is neither success nor failure.
 - Metric labels stay low cardinality (route template, status class), because an SLI computed over
   an unbounded label set becomes both wrong and expensive.
 - In production, the objectives would come from what the business can tolerate, not from what makes
