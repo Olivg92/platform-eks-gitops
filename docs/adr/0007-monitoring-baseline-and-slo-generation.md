@@ -41,8 +41,8 @@ Prometheus is configured to watch every `ServiceMonitor`, `PodMonitor` and `Prom
 the cluster rather than only those labelled by its own release, so applications and Sloth can ship
 their own objects without knowing anything about the monitoring release.
 
-The components a managed control plane does not expose — controller-manager, scheduler, etcd,
-kube-proxy — are disabled. That is true of k3s locally and of EKS on AWS, and scraping them would
+The components a managed control plane does not expose (controller-manager, scheduler, etcd,
+kube-proxy) are disabled. That is true of k3s locally and of EKS on AWS, and scraping them would
 only produce alerts that fire forever.
 
 Grafana's admin password is generated in the secret store and delivered by External Secrets

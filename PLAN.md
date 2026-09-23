@@ -17,7 +17,7 @@ Règle d'or : **3 projets finis et documentés valent mieux que 8 repos commenc�
 
 ---
 
-## Phase 0 — Setup (1 soirée)
+## Phase 0 : setup (1 soirée)
 
 - [x] Compte GitHub : photo, bio, lien LinkedIn
 - [x] Compte AWS perso, via la nouvelle inscription AWS à « projets » : pas d'utilisateur root ni IAM, connexion par fournisseur d'identité avec 2FA, région imposée `eu-north-1`
@@ -30,7 +30,7 @@ Règle d'or : **3 projets finis et documentés valent mieux que 8 repos commenc�
 
 ---
 
-## Phase 1 — `platform-eks-gitops` (2 à 3 semaines)
+## Phase 1 : `platform-eks-gitops` (2 à 3 semaines)
 
 Principe : **tout se développe en local sur k3d**, EKS ne sert qu'à valider et faire la démo, puis `make down`.
 
@@ -58,7 +58,7 @@ platform-eks-gitops/
 
 ### 1.2 Plateforme en local (k3d)
 - [x] `make local-up` : cluster k3d + install ArgoCD + app-of-apps
-- [x] Ingress via **Gateway API** (Envoy Gateway) — ingress-nginx est en fin de vie, montrer qu'on suit l'écosystème
+- [x] Ingress via **Gateway API** (Envoy Gateway), car ingress-nginx est en fin de vie : montrer qu'on suit l'écosystème
 - [x] cert-manager (+ TLS sur le Gateway via une CA locale)
 - [x] External Secrets Operator (backend local : Vault en mode dev ; sur AWS : Secrets Manager)
 - [x] kube-prometheus-stack (Prometheus, Alertmanager, Grafana derrière le Gateway, mot de passe admin issu de Vault)
@@ -74,7 +74,7 @@ platform-eks-gitops/
 
 ### 1.4 AWS EKS avec Terraform
 - [ ] `terraform/bootstrap` : bucket S3 versionné + chiffré pour le state
-- [ ] VPC **sans NAT Gateway** (nœuds en subnets publics avec SG stricts, ou VPC endpoints) — justifier dans un ADR
+- [ ] VPC **sans NAT Gateway** (nœuds en subnets publics avec SG stricts, ou VPC endpoints), à justifier dans un ADR
 - [ ] EKS + managed node group en **Spot**, taille minimale
 - [ ] **EKS Pod Identity** (ou IRSA) pour ESO → Secrets Manager
 - [ ] `make up` : terraform apply + bootstrap ArgoCD pointant sur le même repo
@@ -98,7 +98,7 @@ platform-eks-gitops/
 
 ---
 
-## Phase 2 — `portfolio-site` (1 semaine)
+## Phase 2 : `portfolio-site` (1 semaine)
 
 - [ ] Astro (ou Hugo), hébergé sur GitHub Pages
 - [ ] Pages : Accueil (positionnement en 2 phrases), Projets, Expérience, Debug stories, Contact
@@ -109,7 +109,7 @@ platform-eks-gitops/
 
 ---
 
-## Phase 3 — Debug stories (en continu, 1 par semaine)
+## Phase 3 : debug stories (en continu, 1 par semaine)
 
 Format postmortem court, sans blâme, **entièrement anonymisé** (aucun nom d'entreprise, host, IP, index, URL interne).
 
@@ -126,7 +126,7 @@ Bonus : reproduire le bug dans un mini-repo ou dans k3d quand c'est possible.
 
 ---
 
-## Phase 4 — `llm-platform-sre` (2 à 3 semaines)
+## Phase 4 : `llm-platform-sre` (2 à 3 semaines)
 
 Version **générique**, aucun code ni donnée de l'employeur.
 
@@ -140,7 +140,7 @@ Version **générique**, aucun code ni donnée de l'employeur.
 
 ---
 
-## Phase 5 — Finalisation
+## Phase 5 : finalisation
 
 - [ ] README de profil GitHub : 2 phrases de positionnement, 3 projets, lien site
 - [x] Épingler les 3 repos (fait dès le départ, pour que le profil soit présentable)
