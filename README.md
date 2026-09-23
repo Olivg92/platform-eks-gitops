@@ -44,6 +44,8 @@ When it finishes:
 | HTTPS traffic | `curl -k --resolve grafana.platform.local:8443:127.0.0.1 https://grafana.platform.local:8443/` |
 | Grafana | same URL in a browser, user `admin`, `make grafana-password` |
 | Demo API | `curl -k --resolve demo.platform.local:8443:127.0.0.1 https://demo.platform.local:8443/` |
+| Prometheus | `make prometheus-ui`, then http://localhost:9090 (targets, rules, alerts) |
+| Alertmanager | `make alertmanager-ui`, then http://localhost:9093 |
 | Applications | `make local-status` |
 
 ### What runs on the platform

@@ -102,6 +102,14 @@ local-status: ## Show Argo CD applications and platform pods
 argocd-ui: ## Port-forward the Argo CD UI to http://localhost:8081
 	kubectl port-forward -n $(ARGOCD_NS) svc/argocd-server 8081:80
 
+.PHONY: prometheus-ui
+prometheus-ui: ## Port-forward Prometheus to http://localhost:9090 (targets, rules, alerts)
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+
+.PHONY: alertmanager-ui
+alertmanager-ui: ## Port-forward Alertmanager to http://localhost:9093
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-alertmanager 9093:9093
+
 .PHONY: argocd-password
 argocd-password: ## Print the initial Argo CD admin password
 	@kubectl get secret -n $(ARGOCD_NS) argocd-initial-admin-secret \
