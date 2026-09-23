@@ -66,6 +66,22 @@ stored token. `make local-verify` prints the value that made the trip.
 
 `make local-down` deletes the cluster. Run `make help` for every target.
 
+### What it looks like
+
+One manifest is applied by hand; Argo CD deploys and reconciles everything else.
+
+![Argo CD applications, all synced and healthy](docs/images/argocd-applications.png)
+
+Grafana, reached through the platform gateway over HTTPS, with the dashboards the monitoring
+stack ships. The certificate comes from the cluster's own authority, and the admin password was
+generated in the secret store — it exists nowhere in this repository.
+
+![Grafana dashboards behind the gateway](docs/images/grafana-dashboards.png)
+
+`make local-verify` checks the whole chain in one command:
+
+![Output of make local-verify](docs/images/make-local-verify.png)
+
 ### Troubleshooting
 
 | Symptom | Cause | Fix |
