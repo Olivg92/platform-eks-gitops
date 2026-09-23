@@ -26,7 +26,7 @@ lint: ## Run all linters and security checks
 ## ---- Local (k3d, free) ----
 
 .PHONY: local-up
-local-up: local-cluster local-argocd local-bootstrap local-wait local-info ## Create the k3d cluster and bootstrap Argo CD
+local-up: local-cluster demo-image local-argocd local-bootstrap local-wait local-info ## Create the k3d cluster and bootstrap the whole platform
 
 .PHONY: local-cluster
 local-cluster: ## Create the k3d cluster (no-op if it already exists)
