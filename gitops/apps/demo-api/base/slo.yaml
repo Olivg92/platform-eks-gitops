@@ -21,7 +21,10 @@ spec:
           # `or on() vector(0)` matters: with no errors at all the inner sum returns
           # no series, the division yields nothing, and the SLI would simply not exist.
           errorQuery: sum(rate(http_requests_total{job="demo-api", route="/", status=~"5.."}[{{.window}}])) or on() vector(0)
-          totalQuery: sum(rate(http_requests_total{job="demo-api", route="/"}[{{.window}}]))
+          # clamp_min protects the ratio from 0/0. With no traffic at all the
+          # division would produce NaN, and Sloth averages these 5m ratios over
+          # 30 days, so one NaN makes the error budget unreadable for a month.
+          totalQuery: clamp_min(sum(rate(http_requests_total{job="demo-api", route="/"}[{{.window}}])), 1e-9)
       alerting:
         name: DemoApiAvailabilityBudgetBurn
         labels:
@@ -48,7 +51,7 @@ spec:
             -
             sum(rate(http_request_duration_seconds_bucket{job="demo-api", route="/", le="0.3"}[{{.window}}])))
             or on() vector(0)
-          totalQuery: sum(rate(http_request_duration_seconds_count{job="demo-api", route="/"}[{{.window}}]))
+          totalQuery: clamp_min(sum(rate(http_request_duration_seconds_count{job="demo-api", route="/"}[{{.window}}])), 1e-9)
       alerting:
         name: DemoApiLatencyBudgetBurn
         labels:
