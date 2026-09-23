@@ -82,6 +82,10 @@ make demo-load SECONDS=120 RPS=8    # traffic through the gateway
 make demo-fix
 ```
 
+The dashboard shows what was delivered next to what was promised, over a window you pick from 1h
+to 1y. The value only covers the data Prometheus still holds, which is 24h here: long windows are
+a question of retention, not of dashboards.
+
 See [ADR 0008](docs/adr/0008-slo-definitions-for-the-demo-api.md) for why these numbers, and why
 latency is counted from a histogram bucket rather than from a percentile.
 
