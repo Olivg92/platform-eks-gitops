@@ -41,7 +41,8 @@ When it finishes:
 | Health check | `make local-verify` — applications, gateway, TLS and secrets in one command |
 | Argo CD UI | `make argocd-ui`, then http://localhost:8081 (user `admin`, `make argocd-password`) |
 | HTTP traffic | http://localhost:8080 (404 until an application attaches a route) |
-| HTTPS traffic | `curl -k --resolve platform.local:8443:127.0.0.1 https://platform.local:8443/` |
+| HTTPS traffic | `curl -k --resolve grafana.platform.local:8443:127.0.0.1 https://grafana.platform.local:8443/` |
+| Grafana | same URL in a browser, user `admin`, `make grafana-password` |
 | Applications | `make local-status` |
 
 ### What runs on the platform
@@ -52,7 +53,12 @@ When it finishes:
 | cert-manager | Issues the TLS certificate of the gateway listener | -1 |
 | External Secrets Operator | Materialises secrets from a store, so none live in git ([ADR 0005](docs/adr/0005-secrets-with-external-secrets-operator.md)) | -1 |
 | Vault (dev mode) | Local stand-in for AWS Secrets Manager | -1 |
-| Gateway, issuer, secret store | The resources those operators consume | 0 and 1 |
+| kube-prometheus-stack | Prometheus, Alertmanager and Grafana ([ADR 0007](docs/adr/0007-monitoring-baseline-and-slo-generation.md)) | 0 |
+| Sloth | Turns SLO objects into multi-window burn-rate rules | 0 |
+| Gateway, issuer, secret store, routes | The resources those operators consume | -1 to 1 |
+
+Install order is expressed with Argo CD sync waves: operators and CRDs first (-2), then the stores
+and issuers they need (-1), then the components that consume them (0), then routes and workloads (1).
 
 Secrets never touch this repository. `gitops/envs/local/secret-store/` declares *which* secret is
 needed; the value is read from Vault, which trusts the operator's ServiceAccount rather than any
@@ -97,7 +103,8 @@ _To be written: multi-AZ, Karpenter, backups with Velero, policies with Kyverno,
 
 - [x] Repository layout, linting and secret scanning (pre-commit)
 - [x] Local platform on k3d: Argo CD (app-of-apps) and Gateway API with Envoy Gateway
-- [ ] cert-manager, External Secrets Operator, Prometheus stack and SLO tooling
+- [x] cert-manager and TLS, External Secrets Operator with no secret in git
+- [x] Prometheus, Alertmanager, Grafana and Sloth, with Grafana behind the gateway
 - [ ] Demo API with SLOs, burn-rate alerts, dashboard and runbooks
 - [ ] AWS EKS with Terraform (no NAT, Spot nodes, Pod Identity)
 - [ ] CI with GitHub Actions and OIDC authentication to AWS

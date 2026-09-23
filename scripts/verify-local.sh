@@ -36,8 +36,10 @@ gateway_http() {
 }
 
 gateway_https() {
-  issuer=$(curl -sk --resolve platform.local:8443:127.0.0.1 -v --max-time 10 \
-    https://platform.local:8443/ 2>&1 | sed -n 's/^\* *issuer: //p' | head -1)
+  # Any subdomain: the listener serves a wildcard certificate for *.platform.local,
+  # which by design does not cover the bare domain.
+  issuer=$(curl -sk --resolve unrouted.platform.local:8443:127.0.0.1 -v --max-time 10 \
+    https://unrouted.platform.local:8443/ 2>&1 | sed -n 's/^\* *issuer: //p' | head -1)
   [ -n "$issuer" ] && echo "TLS terminated, issuer $issuer" || { echo "no TLS handshake"; return 1; }
 }
 
@@ -46,10 +48,17 @@ secret_from_vault() {
   [ -n "$value" ] && echo "\"$value\"" || { echo "secret not created by External Secrets"; return 1; }
 }
 
+grafana_through_gateway() {
+  code=$(curl -sk --resolve grafana.platform.local:8443:127.0.0.1 -o /dev/null -w '%{http_code}' \
+    --max-time 15 https://grafana.platform.local:8443/login)
+  [ "$code" = "200" ] && echo "reachable over HTTPS (HTTP $code)" || { echo "unexpected HTTP $code"; return 1; }
+}
+
 echo "checking the local platform:"
 check "Argo CD applications"          apps_ready
 check "gateway, HTTP listener"        gateway_http
 check "gateway, HTTPS listener"       gateway_https
 check "secret synced from Vault"      secret_from_vault
+check "Grafana behind the gateway"    grafana_through_gateway
 
 exit $failed

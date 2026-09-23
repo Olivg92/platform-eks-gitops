@@ -70,6 +70,11 @@ local-info: ## Print how to reach Argo CD and the gateway
 local-verify: ## Check the platform end to end (applications, gateway, secrets)
 	@scripts/verify-local.sh $(ARGOCD_NS)
 
+.PHONY: grafana-password
+grafana-password: ## Print the Grafana admin password (generated in the secret store)
+	@kubectl get secret -n monitoring grafana-admin \
+		-o jsonpath='{.data.admin-password}' | base64 -d; echo
+
 .PHONY: local-status
 local-status: ## Show Argo CD applications and platform pods
 	@kubectl get applications.argoproj.io -n $(ARGOCD_NS)

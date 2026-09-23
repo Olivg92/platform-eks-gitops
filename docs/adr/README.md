@@ -11,3 +11,4 @@ New ADRs start from [the template](0000-template.md) and are never rewritten onc
 | [0004](0004-bootstrap-argocd-with-helm.md) | Install Argo CD with Helm, then let git take over | Accepted |
 | [0005](0005-secrets-with-external-secrets-operator.md) | Keep secrets out of git with External Secrets Operator | Accepted |
 | [0006](0006-shared-base-with-environment-overlays.md) | Share one base between environments, overlay what differs | Accepted |
+| [0007](0007-monitoring-baseline-and-slo-generation.md) | kube-prometheus-stack as the baseline, Sloth to generate SLO rules | Accepted |

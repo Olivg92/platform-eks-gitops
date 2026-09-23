@@ -6,3 +6,6 @@ resources:
   - envoy-gateway/application.yaml
   - cert-manager/application.yaml
   - external-secrets/application.yaml
+  - secrets/application.yaml
+  - kube-prometheus-stack/application.yaml
+  - sloth/application.yaml

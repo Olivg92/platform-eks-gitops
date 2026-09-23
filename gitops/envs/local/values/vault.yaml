@@ -35,6 +35,12 @@ server:
 
       # One demo secret, so the whole chain can be verified end to end.
       vault kv put secret/demo message="stored in Vault, never in git"
+
+      # Grafana's admin password: generated here, never written down anywhere.
+      # Read it back with `make grafana-password`.
+      vault kv get secret/grafana >/dev/null 2>&1 || vault kv put secret/grafana \
+        admin-user=admin \
+        admin-password="$(head -c 18 /dev/urandom | base64 | tr -d '/+=')"
   dev:
     enabled: true
     # Well-known dev token. Vault dev mode requires one, it grants access to an

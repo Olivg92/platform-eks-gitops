@@ -20,7 +20,7 @@ patches:
           name: https
           protocol: HTTPS
           port: 443
-          hostname: platform.local
+          hostname: "*.platform.local"
           tls:
             mode: Terminate
             certificateRefs:
