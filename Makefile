@@ -66,6 +66,12 @@ local-info: ## Print how to reach Argo CD and the gateway
 	@echo "Password: make argocd-password"
 	@echo "Gateway:  http://localhost:8080 (no route attached yet)"
 
+.PHONY: demo-image
+demo-image: ## Build the demo API image and import it into the k3d cluster
+	docker build -t demo-api:dev apps/demo-api
+	k3d image import demo-api:dev --cluster $(CLUSTER_NAME)
+	kubectl rollout restart deployment/demo-api -n demo 2>/dev/null || true
+
 .PHONY: local-verify
 local-verify: ## Check the platform end to end (applications, gateway, secrets)
 	@scripts/verify-local.sh $(ARGOCD_NS)

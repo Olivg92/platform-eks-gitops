@@ -1,0 +1,17 @@
+# Tells Prometheus to scrape the application. Prometheus watches every
+# ServiceMonitor in the cluster, so nothing has to be declared on its side.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: demo-api
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: demo-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
