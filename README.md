@@ -120,6 +120,7 @@ generated in the secret store, so it exists nowhere in this repository.
 |---|---|---|
 | Pods stuck in `ImagePullBackOff`, events showing `lookup <registry>: Try again` | k3d nodes keep the DNS servers they were created with. Moving between networks, or connecting to a VPN, leaves them pointing at a resolver they can no longer reach. | `make local-restart` |
 | `make local-up` fails on the Argo CD install with `context deadline exceeded` | Same cause: the pods never become ready because their images cannot be pulled. | `make local-restart`, then `make local-up` again |
+| Grafana rejects the password from `make grafana-password`, usually after a machine reboot | Vault runs in dev mode and keeps nothing on disk, so it regenerates the password on restart. Grafana only reads it when it starts, so it still holds the previous one. | `make grafana-reload` |
 | An application stays `OutOfSync` while everything is healthy | Expected while testing a branch: the root application is paused on purpose (see [Development](#development)). | `make local-bootstrap` once the branch is merged |
 
 ## Repository layout

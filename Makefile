@@ -116,9 +116,20 @@ argocd-password: ## Print the initial Argo CD admin password
 		-o jsonpath='{.data.password}' | base64 -d; echo
 
 .PHONY: local-restart
-local-restart: ## Stop and start the cluster (refreshes node DNS after a network change)
+local-restart: ## Stop and start the cluster (refreshes node DNS, reloads generated secrets)
 	k3d cluster stop $(CLUSTER_NAME)
 	k3d cluster start $(CLUSTER_NAME)
+	@# Vault runs in dev mode, so a restart wipes it and regenerates the Grafana
+	@# password. Grafana only reads it at startup, so it has to be restarted after
+	@# External Secrets has published the new value.
+	@echo "waiting for the regenerated secrets, then reloading Grafana..."
+	@sleep 60
+	@kubectl rollout restart deploy/kube-prometheus-stack-grafana -n monitoring 2>/dev/null || true
+
+.PHONY: grafana-reload
+grafana-reload: ## Restart Grafana so it picks up a regenerated admin password
+	kubectl rollout restart deploy/kube-prometheus-stack-grafana -n monitoring
+	kubectl rollout status deploy/kube-prometheus-stack-grafana -n monitoring --timeout=180s
 
 .PHONY: local-down
 local-down: ## Delete the k3d cluster
