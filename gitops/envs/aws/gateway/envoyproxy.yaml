@@ -1,0 +1,19 @@
+# Envoy Gateway creates a Service for each Gateway. On AWS that Service becomes a
+# load balancer, and this is where we say which kind: a network load balancer,
+# billed hourly, rather than the classic one the in-tree controller defaults to.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: platform
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: LoadBalancer
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: nlb
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      envoyDeployment:
+        replicas: 2

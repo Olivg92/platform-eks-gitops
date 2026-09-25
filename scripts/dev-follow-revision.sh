@@ -11,7 +11,8 @@ set -euo pipefail
 
 REVISION="${1:?usage: $0 <branch> [namespace]}"
 NS="${2:-argocd}"
-ROOT_APP="root-local"
+# Local and AWS have their own root application.
+ROOT_APP="${ROOT_APP:-root-local}"
 
 # The root application must run first: it is what creates the other applications.
 # It may be paused from a previous run, so resume it before waiting for them.

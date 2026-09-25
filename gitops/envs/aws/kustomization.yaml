@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# AWS environment: the same platform components as local, with Secrets Manager in
+# place of Vault and a network load balancer in front of the gateway.
+#
+# The demo application is not here yet: it runs from a locally built image, which
+# only exists inside k3d. It arrives with the CI pipeline that publishes it.
+resources:
+  - ../../platform
+  - applications/secret-store.yaml
+  - applications/gateway.yaml

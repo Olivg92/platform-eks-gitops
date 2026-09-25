@@ -150,10 +150,49 @@ up: ## Create the EKS demo environment (about $0.15/hour, always finish with mak
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
 	@echo "restricting the Kubernetes API to $(MY_IP)/32"
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) apply -input=false $(TF_API_CIDR)
-	AWS_PROFILE=$(AWS_PROFILE) aws eks update-kubeconfig --region $(AWS_REGION) \
-		--name $$(terraform -chdir=$(TF_DEMO) output -raw cluster_name)
+	@# The profile has to cover the `terraform output` too: a bare prefix applies
+	@# only to the command that follows it, and the substitution runs before that,
+	@# which sent the state read to whatever profile happened to be the default.
+	@name=$$(AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) output -raw cluster_name); \
+	AWS_PROFILE=$(AWS_PROFILE) aws eks update-kubeconfig --region $(AWS_REGION) --name $$name
+	@$(MAKE) --no-print-directory aws-argocd aws-bootstrap aws-wait aws-info
+
+.PHONY: aws-argocd
+aws-argocd: ## Install Argo CD on the EKS cluster
+	helm upgrade --install argocd argo-cd \
+		--repo https://argoproj.github.io/argo-helm \
+		--version $(ARGOCD_CHART) \
+		--namespace $(ARGOCD_NS) --create-namespace \
+		--values aws/argocd-values.yaml \
+		--wait --timeout 10m
+
+.PHONY: aws-bootstrap
+aws-bootstrap: ## Apply the AWS root Application (app-of-apps)
+	@sed 's|targetRevision: main|targetRevision: $(REVISION)|' \
+		gitops/bootstrap/aws/root-app.yaml | kubectl apply -f -
+	@if [ "$(REVISION)" != "main" ]; then \
+		sleep 10; ROOT_APP=root-aws scripts/dev-follow-revision.sh $(REVISION) $(ARGOCD_NS); \
+	fi
+
+.PHONY: aws-wait
+aws-wait: ## Wait for the AWS applications to converge
+	@echo "waiting for applications to sync..."
+	@scripts/wait-for-apps.sh $(ARGOCD_NS) 900
+
+.PHONY: aws-info
+aws-info: ## Print how to reach the platform on AWS
 	@echo
-	@echo "cluster ready. Remember: make down when you are finished."
+	@echo "Argo CD:  make argocd-ui   then http://localhost:8081 (user: admin)"
+	@echo "Password: make argocd-password"
+	@echo "Gateway:  make aws-gateway-url"
+	@echo
+	@echo "Remember: make down when you are finished."
+
+.PHONY: aws-gateway-url
+aws-gateway-url: ## Print the load balancer address of the gateway
+	@kubectl get svc -n envoy-gateway-system \
+		-l gateway.envoyproxy.io/owning-gateway-name=platform \
+		-o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}{"\n"}'
 
 .PHONY: plan
 plan: ## Show what `make up` would create, without creating it
