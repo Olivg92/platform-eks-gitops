@@ -44,6 +44,8 @@ When it finishes:
 | HTTPS traffic | `curl -k --resolve grafana.platform.local:8443:127.0.0.1 https://grafana.platform.local:8443/` |
 | Grafana | same URL in a browser, user `admin`, `make grafana-password` |
 | Demo API | `curl -k --resolve demo.platform.local:8443:127.0.0.1 https://demo.platform.local:8443/` |
+| Prometheus | `make prometheus-ui`, then http://localhost:9090 (targets, rules, alerts) |
+| Alertmanager | `make alertmanager-ui`, then http://localhost:9093 |
 | Applications | `make local-status` |
 
 ### What runs on the platform
@@ -58,6 +60,34 @@ When it finishes:
 | Sloth | Turns SLO objects into multi-window burn-rate rules | 0 |
 | [`demo-api`](apps/demo-api/) | Small Python API with an SLO, and a switch to make it fail on demand | 1 |
 | Gateway, issuer, secret store, routes | The resources those operators consume | -1 to 1 |
+
+### Service level objectives
+
+The demo API promises two things, declared in [one short object](gitops/apps/demo-api/base/slo.yaml)
+that Sloth expands into 30 recording rules and 4 alerts:
+
+| Objective | Target | Error budget over 30 days |
+|---|---|---|
+| Requests answered without a 5xx | 99.5% | about 3h36m of total failure |
+| Requests answered in under 300ms | 99% | about 7h12m of slow requests |
+
+A one-request-per-second probe runs next to the application: with no traffic at all the SLI is
+0/0, and the error budget becomes unreadable. Alerting is multi-window burn-rate: a fast pair of windows pages, a slow pair opens a ticket, and
+each alert links to [its runbook](docs/runbooks/). Both are reproducible on demand:
+
+```bash
+make demo-break RATE=0.2            # 20% of requests fail, on every pod
+make demo-load SECONDS=120 RPS=8    # traffic through the gateway
+# watch the budget drain in Grafana: demo-api / SLO
+make demo-fix
+```
+
+The dashboard shows what was delivered next to what was promised, over a window you pick from 1h
+to 1y. The value only covers the data Prometheus still holds, which is 24h here: long windows are
+a question of retention, not of dashboards.
+
+See [ADR 0008](docs/adr/0008-slo-definitions-for-the-demo-api.md) for why these numbers, and why
+latency is counted from a histogram bucket rather than from a percentile.
 
 Install order is expressed with Argo CD sync waves: operators and CRDs first (-2), then the stores
 and issuers they need (-1), then the components that consume them (0), then routes and workloads (1).
@@ -90,6 +120,7 @@ generated in the secret store, so it exists nowhere in this repository.
 |---|---|---|
 | Pods stuck in `ImagePullBackOff`, events showing `lookup <registry>: Try again` | k3d nodes keep the DNS servers they were created with. Moving between networks, or connecting to a VPN, leaves them pointing at a resolver they can no longer reach. | `make local-restart` |
 | `make local-up` fails on the Argo CD install with `context deadline exceeded` | Same cause: the pods never become ready because their images cannot be pulled. | `make local-restart`, then `make local-up` again |
+| Grafana rejects the password from `make grafana-password`, usually after a machine reboot | Vault runs in dev mode and keeps nothing on disk, so it regenerates the password on restart. Grafana only reads it when it starts, so it still holds the previous one. | `make grafana-reload` |
 | An application stays `OutOfSync` while everything is healthy | Expected while testing a branch: the root application is paused on purpose (see [Development](#development)). | `make local-bootstrap` once the branch is merged |
 
 ## Repository layout

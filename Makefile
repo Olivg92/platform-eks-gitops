@@ -72,6 +72,18 @@ demo-image: ## Build the demo API image and import it into the k3d cluster
 	k3d image import demo-api:dev --cluster $(CLUSTER_NAME)
 	kubectl rollout restart deployment/demo-api -n demo 2>/dev/null || true
 
+.PHONY: demo-load
+demo-load: ## Send traffic to the demo API (make demo-load SECONDS=120 RPS=10)
+	@scripts/demo-traffic.sh load $(or $(SECONDS),60) $(or $(RPS),5)
+
+.PHONY: demo-break
+demo-break: ## Make the demo API fail (make demo-break RATE=0.3 LATENCY=0)
+	@scripts/demo-traffic.sh break $(or $(RATE),0.3) $(or $(LATENCY),0)
+
+.PHONY: demo-fix
+demo-fix: ## Stop the injected failures
+	@scripts/demo-traffic.sh fix
+
 .PHONY: local-verify
 local-verify: ## Check the platform end to end (applications, gateway, secrets)
 	@scripts/verify-local.sh $(ARGOCD_NS)
@@ -90,15 +102,34 @@ local-status: ## Show Argo CD applications and platform pods
 argocd-ui: ## Port-forward the Argo CD UI to http://localhost:8081
 	kubectl port-forward -n $(ARGOCD_NS) svc/argocd-server 8081:80
 
+.PHONY: prometheus-ui
+prometheus-ui: ## Port-forward Prometheus to http://localhost:9090 (targets, rules, alerts)
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+
+.PHONY: alertmanager-ui
+alertmanager-ui: ## Port-forward Alertmanager to http://localhost:9093
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-alertmanager 9093:9093
+
 .PHONY: argocd-password
 argocd-password: ## Print the initial Argo CD admin password
 	@kubectl get secret -n $(ARGOCD_NS) argocd-initial-admin-secret \
 		-o jsonpath='{.data.password}' | base64 -d; echo
 
 .PHONY: local-restart
-local-restart: ## Stop and start the cluster (refreshes node DNS after a network change)
+local-restart: ## Stop and start the cluster (refreshes node DNS, reloads generated secrets)
 	k3d cluster stop $(CLUSTER_NAME)
 	k3d cluster start $(CLUSTER_NAME)
+	@# Vault runs in dev mode, so a restart wipes it and regenerates the Grafana
+	@# password. Grafana only reads it at startup, so it has to be restarted after
+	@# External Secrets has published the new value.
+	@echo "waiting for the regenerated secrets, then reloading Grafana..."
+	@sleep 60
+	@kubectl rollout restart deploy/kube-prometheus-stack-grafana -n monitoring 2>/dev/null || true
+
+.PHONY: grafana-reload
+grafana-reload: ## Restart Grafana so it picks up a regenerated admin password
+	kubectl rollout restart deploy/kube-prometheus-stack-grafana -n monitoring
+	kubectl rollout status deploy/kube-prometheus-stack-grafana -n monitoring --timeout=180s
 
 .PHONY: local-down
 local-down: ## Delete the k3d cluster

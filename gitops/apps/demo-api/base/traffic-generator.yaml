@@ -1,0 +1,50 @@
+# A trickle of synthetic traffic, one request per second.
+#
+# Without it the SLI is undefined whenever nobody calls the service: the ratio
+# becomes 0/0, which Prometheus records as NaN, and a single NaN poisons the
+# 30-day average Sloth builds from it. Real platforms solve this the same way,
+# with blackbox probes, for the same reason: "no traffic" is not "no errors".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api-traffic
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: demo-api-traffic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-api-traffic
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-api-traffic
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: curlimages/curl:8.19.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                curl -s -o /dev/null --max-time 5 http://demo-api.demo.svc/ || true
+                sleep 1
+              done
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

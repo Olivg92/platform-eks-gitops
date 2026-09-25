@@ -55,5 +55,10 @@ reference, never the credential.
 - Defining an SLO becomes a ten-line object instead of six hand-written rules.
 - The stack is sized for a demo: no persistence, 24h retention, one replica. Restarting the
   cluster loses the history, which is the intended trade-off for a laptop.
+- **Retention bounds how far back an SLI can be read.** The dashboard lets the window be chosen up
+  to a year, but the value only ever covers the data still stored, so 30 days and 1 day return the
+  same number here. Real 30-day or yearly SLOs need persistent storage with matching retention, or
+  remote write to a long-term backend such as Thanos, Mimir or Amazon Managed Prometheus. The
+  dashboard says so in the panel description rather than pretending otherwise.
 - In production this would gain persistent volumes, longer retention or remote write to a durable
   backend, and Alertmanager would route to a real paging provider rather than sit idle.

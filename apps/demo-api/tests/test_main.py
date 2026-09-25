@@ -42,3 +42,15 @@ def test_injected_latency_is_applied():
 
 def test_chaos_settings_are_validated():
     assert client.post("/chaos", json={"error_rate": 2.0}).status_code == 422
+
+
+def test_metrics_are_labelled_with_the_route_template():
+    """The route is only known after the router has matched it: reading it too
+    early labels every request as "unmatched" and makes the SLO queries empty."""
+    client.get("/")
+    body = client.get("/metrics").text
+    assert 'route="/"' in body
+
+    client.get("/no-such-page")
+    body = client.get("/metrics").text
+    assert 'route="unmatched"' in body
