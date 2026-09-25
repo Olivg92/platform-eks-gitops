@@ -26,7 +26,7 @@ lint: ## Run all linters and security checks
 ## ---- Local (k3d, free) ----
 
 .PHONY: local-up
-local-up: local-cluster local-argocd local-bootstrap local-wait local-info ## Create the k3d cluster and bootstrap Argo CD
+local-up: local-cluster demo-image local-argocd local-bootstrap local-wait local-info ## Create the k3d cluster and bootstrap the whole platform
 
 .PHONY: local-cluster
 local-cluster: ## Create the k3d cluster (no-op if it already exists)
@@ -65,6 +65,12 @@ local-info: ## Print how to reach Argo CD and the gateway
 	@echo "Argo CD:  make argocd-ui   then http://localhost:8081 (user: admin)"
 	@echo "Password: make argocd-password"
 	@echo "Gateway:  http://localhost:8080 (no route attached yet)"
+
+.PHONY: demo-image
+demo-image: ## Build the demo API image and import it into the k3d cluster
+	docker build -t demo-api:dev apps/demo-api
+	k3d image import demo-api:dev --cluster $(CLUSTER_NAME)
+	kubectl rollout restart deployment/demo-api -n demo 2>/dev/null || true
 
 .PHONY: local-verify
 local-verify: ## Check the platform end to end (applications, gateway, secrets)

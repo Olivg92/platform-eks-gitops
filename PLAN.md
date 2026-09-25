@@ -66,8 +66,8 @@ platform-eks-gitops/
 - [x] Sync waves ArgoCD pour l'ordre (CRDs → opérateurs → apps)
 
 ### 1.3 Appli de démo + SLO
-- [ ] Petite API (Go ou Python) exposant `/metrics` (latence, erreurs), avec un endpoint pour injecter des erreurs/latence
-- [ ] Chart Helm ou kustomize, déployé par ArgoCD
+- [x] Petite API Python (FastAPI) exposant `/metrics` (latence, erreurs), avec `/chaos` pour injecter erreurs et latence
+- [x] Manifestes kustomize (base partagée + surcouche locale), déployés par ArgoCD, route HTTPS et ServiceMonitor
 - [ ] SLO disponibilité 99,5 % et latence p95 < 300 ms, alertes **multi-window burn-rate**
 - [ ] Dashboard Grafana versionné (JSON dans le repo)
 - [ ] Un runbook par alerte dans `docs/runbooks/`

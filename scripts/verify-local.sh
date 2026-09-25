@@ -54,11 +54,26 @@ grafana_through_gateway() {
   [ "$code" = "200" ] && echo "reachable over HTTPS (HTTP $code)" || { echo "unexpected HTTP $code"; return 1; }
 }
 
+demo_api() {
+  body=$(curl -sk --resolve demo.platform.local:8443:127.0.0.1 --max-time 15 https://demo.platform.local:8443/)
+  case "$body" in
+    *hello*) echo "answers through the gateway" ;;
+    *) echo "unexpected answer: ${body:-none}"; return 1 ;;
+  esac
+}
+
+demo_api_scraped() {
+  scraped=$(kubectl get servicemonitor -n demo demo-api -o name 2>/dev/null)
+  [ -n "$scraped" ] && echo "ServiceMonitor in place" || { echo "no ServiceMonitor"; return 1; }
+}
+
 echo "checking the local platform:"
 check "Argo CD applications"          apps_ready
 check "gateway, HTTP listener"        gateway_http
 check "gateway, HTTPS listener"       gateway_https
 check "secret synced from Vault"      secret_from_vault
 check "Grafana behind the gateway"    grafana_through_gateway
+check "demo API behind the gateway"   demo_api
+check "demo API scraped by Prometheus" demo_api_scraped
 
 exit $failed

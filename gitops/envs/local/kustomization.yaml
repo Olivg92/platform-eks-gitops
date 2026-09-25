@@ -9,3 +9,4 @@ resources:
   - applications/local-issuer.yaml
   - applications/secret-store.yaml
   - applications/monitoring-route.yaml
+  - applications/demo-api.yaml

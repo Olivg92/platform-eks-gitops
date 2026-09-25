@@ -43,6 +43,7 @@ When it finishes:
 | HTTP traffic | http://localhost:8080 (404 until an application attaches a route) |
 | HTTPS traffic | `curl -k --resolve grafana.platform.local:8443:127.0.0.1 https://grafana.platform.local:8443/` |
 | Grafana | same URL in a browser, user `admin`, `make grafana-password` |
+| Demo API | `curl -k --resolve demo.platform.local:8443:127.0.0.1 https://demo.platform.local:8443/` |
 | Applications | `make local-status` |
 
 ### What runs on the platform
@@ -55,6 +56,7 @@ When it finishes:
 | Vault (dev mode) | Local stand-in for AWS Secrets Manager | -1 |
 | kube-prometheus-stack | Prometheus, Alertmanager and Grafana ([ADR 0007](docs/adr/0007-monitoring-baseline-and-slo-generation.md)) | 0 |
 | Sloth | Turns SLO objects into multi-window burn-rate rules | 0 |
+| [`demo-api`](apps/demo-api/) | Small Python API with an SLO, and a switch to make it fail on demand | 1 |
 | Gateway, issuer, secret store, routes | The resources those operators consume | -1 to 1 |
 
 Install order is expressed with Argo CD sync waves: operators and CRDs first (-2), then the stores
@@ -105,6 +107,10 @@ generated in the secret store, so it exists nowhere in this repository.
 ## Technical choices
 
 Each non-trivial decision is documented as an [Architecture Decision Record](docs/adr/).
+
+This repository is built with the help of an AI assistant, framed by the rules in
+[CLAUDE.md](CLAUDE.md): cost, security and simplicity constraints it has to respect. Every choice
+here is one I can explain and defend.
 
 ## Cost
 
