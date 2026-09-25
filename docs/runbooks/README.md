@@ -10,3 +10,22 @@ click away from the notification.
 |---|---|
 | `DemoApiAvailabilityBudgetBurn` | [demo-api availability](demo-api-availability.md) |
 | `DemoApiLatencyBudgetBurn` | [demo-api latency](demo-api-latency.md) |
+
+## Tearing down the AWS environment
+
+`make down` removes the Kubernetes objects that own AWS resources before destroying the stack,
+and stops the Argo CD controller first. That order matters: Argo CD recreates whatever is deleted
+while it is running, so a gateway deleted without stopping it comes back with a brand new load
+balancer, and `terraform destroy` waits forever on a VPC that Kubernetes keeps filling.
+
+If a teardown is interrupted, the same sequence by hand:
+
+```bash
+kubectl scale statefulset argocd-application-controller -n argocd --replicas=0
+kubectl delete gateway --all -A
+kubectl delete svc -A --field-selector spec.type=LoadBalancer
+make down
+```
+
+The last lines of `make down` list what is still running. It exits non-zero when anything remains,
+because a load balancer that outlives its cluster keeps billing quietly.
