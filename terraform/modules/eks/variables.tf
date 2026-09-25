@@ -15,9 +15,14 @@ variable "subnet_ids" {
 }
 
 variable "instance_types" {
-  description = "Instance types the Spot node group may pick from."
+  description = <<-EOT
+    Instance types the Spot node group may pick from. Only t3.medium is offered in
+    eu-north-1 among the small burstable families, so the list has one entry here.
+    A production Spot pool would name several families to survive an interruption
+    of any single one.
+  EOT
   type        = list(string)
-  default     = ["t3.medium", "t3a.medium"]
+  default     = ["t3.medium"]
 }
 
 variable "desired_size" {
