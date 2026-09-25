@@ -137,10 +137,36 @@ local-down: ## Delete the k3d cluster
 
 ## ---- AWS (EKS, costs money: always finish with `make down`) ----
 
+AWS_PROFILE ?= perso
+AWS_REGION  ?= eu-north-1
+TF_DEMO     := terraform/envs/demo
+# The Kubernetes API is reachable from this machine only. Override with
+# MY_IP=x.x.x.x if the detection fails or you are behind a changing address.
+MY_IP       ?= $(shell curl -fsS --max-time 5 https://checkip.amazonaws.com || echo detection-failed)
+TF_API_CIDR := -var=api_public_access_cidrs=["\"$(MY_IP)/32\""]
+
 .PHONY: up
-up: ## Create the EKS demo environment and bootstrap Argo CD
-	@echo "not implemented yet (step 1.4)"; exit 1
+up: ## Create the EKS demo environment (about $0.15/hour, always finish with make down)
+	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
+	@echo "restricting the Kubernetes API to $(MY_IP)/32"
+	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) apply -input=false $(TF_API_CIDR)
+	AWS_PROFILE=$(AWS_PROFILE) aws eks update-kubeconfig --region $(AWS_REGION) \
+		--name $$(terraform -chdir=$(TF_DEMO) output -raw cluster_name)
+	@echo
+	@echo "cluster ready. Remember: make down when you are finished."
+
+.PHONY: plan
+plan: ## Show what `make up` would create, without creating it
+	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
+	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) plan -input=false $(TF_API_CIDR)
 
 .PHONY: down
-down: ## Destroy the EKS demo environment
-	@echo "not implemented yet (step 1.4)"; exit 1
+down: ## Destroy the EKS demo environment and check nothing is left billing
+	@AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) TF_DIR=$(TF_DEMO) scripts/aws-down.sh
+
+.PHONY: cost
+cost: ## Show this month's AWS spend (one Cost Explorer call, billed $0.01)
+	@AWS_PROFILE=$(AWS_PROFILE) aws ce get-cost-and-usage \
+		--time-period Start=$$(date -u +%Y-%m-01),End=$$(date -u -d tomorrow +%Y-%m-%d) \
+		--granularity MONTHLY --metrics UnblendedCost \
+		--query 'ResultsByTime[0].Total.UnblendedCost.[Amount,Unit]' --output text

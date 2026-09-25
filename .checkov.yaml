@@ -51,3 +51,44 @@ skip-check:
   # Secret detection is covered by gitleaks, which runs on every commit in this
   # same pre-commit configuration and does not confuse a reference with a value.
   - CKV_SECRET_6
+
+  # --- Terraform: the demo EKS environment ---
+
+  # "Supported Kubernetes version". Checkov carries a hardcoded list that lags
+  # behind AWS: the cluster runs the version `aws eks describe-cluster-versions`
+  # reports as the default, on standard support, which is the actual rule that
+  # matters (extended support costs $0.50/hour extra).
+  - CKV_AWS_339
+
+  # Control plane logging to CloudWatch. Audit logs are the chatty ones and are
+  # billed per GB ingested, which on a cluster that exists for an afternoon costs
+  # more than the cluster. Production would enable api, audit and authenticator.
+  - CKV_AWS_37
+
+  # Private-only API endpoint. Reaching it would need a VPN or a bastion, both of
+  # which cost more than the cluster they protect. The endpoint stays public but
+  # `make up` restricts it to the current address of the machine that runs it,
+  # and Terraform refuses 0.0.0.0/0 outright.
+  - CKV_AWS_39
+
+  # Envelope encryption of Kubernetes secrets with a customer managed KMS key.
+  # EKS already encrypts etcd at rest; a CMK adds $1/month and, worse, survives
+  # `make down` with a mandatory waiting period before deletion.
+  - CKV_AWS_58
+
+  # Subnets assigning a public IP. That is the decision recorded in
+  # docs/adr/0009: no NAT Gateway, nodes in public subnets with strict security
+  # groups, IMDSv2 required and a hop limit of 1.
+  - CKV_AWS_130
+
+  # "Public endpoint not accessible to 0.0.0.0/0". The allowed range is a variable
+  # with no default, so checkov cannot resolve it and assumes the worst. The
+  # guarantee is stronger than a default: `terraform/envs/demo/variables.tf` has a
+  # validation rule that refuses 0.0.0.0/0, and `make up` fills the variable with
+  # the address of the machine running it.
+  - CKV_AWS_38
+
+  # VPC flow logs. Useful, and billed per GB to CloudWatch or S3. On an
+  # environment rebuilt from scratch every session there is nothing to
+  # investigate after the fact.
+  - CKV2_AWS_11
