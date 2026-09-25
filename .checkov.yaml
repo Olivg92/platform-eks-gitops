@@ -1,0 +1,53 @@
+# Checks deliberately skipped, with the reason. A silenced check without a
+# justification is worse than no check at all: it hides the decision.
+skip-check:
+  # CPU limits cause CFS throttling: a container that briefly needs more CPU is
+  # slowed down even when the node is idle, which shows up as latency and eats
+  # the very error budget this platform measures. Requests are set, and memory
+  # limits are set because memory is not compressible.
+  - CKV_K8S_11
+
+  # imagePullPolicy is IfNotPresent on purpose. The demo image is built locally
+  # and imported into k3d, so Always would make the pods unschedulable offline.
+  # On AWS the tag is the immutable one published by CI.
+  - CKV_K8S_15
+
+  # Images are pinned to exact versions rather than digests. Digest pinning
+  # belongs in CI, where a bot can raise the pull request that bumps them;
+  # hand-written digests in a repository go stale and get copied blindly.
+  - CKV_K8S_43
+
+  # The traffic generator is a shell loop with no listening port: a liveness or
+  # readiness probe would have nothing to call. Kubernetes restarts it if the
+  # process exits, which is the whole contract here.
+  - CKV_K8S_8
+  - CKV_K8S_9
+
+  # --- Terraform: the state bucket ---
+
+  # Cross-region replication of the state bucket. The environment it describes
+  # lives in a single region and is rebuilt from code in minutes, so replicating
+  # its state would cost storage and transfer to protect nothing.
+  - CKV_AWS_144
+
+  # Encryption with a customer managed KMS key. SSE-S3 is used instead: a KMS key
+  # costs $1/month plus per-request charges, and the threat it defends against
+  # (an AWS operator reading the bucket) is not the one this account faces.
+  - CKV_AWS_145
+
+  # S3 access logging writes to a second bucket that then needs its own lifecycle
+  # and its own cost. Who touched the state is already answered by CloudTrail,
+  # which is on by default for management events.
+  - CKV_AWS_18
+
+  # Event notifications on a state bucket would fire on every plan and apply with
+  # nothing subscribed to them.
+  - CKV2_AWS_62
+
+  # --- Secrets scanning ---
+
+  # Entropy-based secret detection, which here flags the *names* of the keys to
+  # fetch ("admin-password", "userKey") in files that contain no value at all.
+  # Secret detection is covered by gitleaks, which runs on every commit in this
+  # same pre-commit configuration and does not confuse a reference with a value.
+  - CKV_SECRET_6

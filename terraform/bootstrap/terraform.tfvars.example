@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is not committed:
+# the account id is not a secret, but it does not belong in a public repository.
+account_id        = "123456789012"
+state_bucket_name = "platform-eks-gitops-tfstate-change-me"
