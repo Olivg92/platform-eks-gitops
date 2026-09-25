@@ -1,0 +1,27 @@
+# Argo CD values for the EKS demo environment.
+#
+# Same shape as the local file: one replica of everything, no Dex, no
+# notifications. The difference is that this cluster is destroyed every session,
+# so nothing here is meant to survive.
+configs:
+  params:
+    # Reached through `kubectl port-forward`, which terminates TLS itself.
+    # A permanent cluster would put Argo CD behind the gateway with a real
+    # certificate and an identity provider instead of the admin account.
+    server.insecure: true
+  cm:
+    application.resourceTrackingMethod: annotation
+    timeout.reconciliation: 60s
+
+controller:
+  replicas: 1
+repoServer:
+  replicas: 1
+server:
+  replicas: 1
+applicationSet:
+  replicas: 1
+dex:
+  enabled: false
+notifications:
+  enabled: false

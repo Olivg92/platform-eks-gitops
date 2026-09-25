@@ -14,3 +14,4 @@ New ADRs start from [the template](0000-template.md) and are never rewritten onc
 | [0007](0007-monitoring-baseline-and-slo-generation.md) | kube-prometheus-stack as the baseline, Sloth to generate SLO rules | Accepted |
 | [0008](0008-slo-definitions-for-the-demo-api.md) | What the demo API promises, and how it is measured | Accepted |
 | [0009](0009-public-subnets-without-a-nat-gateway.md) | Run the nodes in public subnets, without a NAT Gateway | Accepted |
+| [0010](0010-pod-identity-for-workload-credentials.md) | Give workloads AWS credentials with EKS Pod Identity | Accepted |

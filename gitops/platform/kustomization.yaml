@@ -5,7 +5,9 @@ kind: Kustomization
 resources:
   - envoy-gateway/application.yaml
   - cert-manager/application.yaml
+  - issuer/application.yaml
   - external-secrets/application.yaml
   - secrets/application.yaml
   - kube-prometheus-stack/application.yaml
   - sloth/application.yaml
+  - monitoring-route/application.yaml

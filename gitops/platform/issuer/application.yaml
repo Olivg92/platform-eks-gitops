@@ -1,0 +1,28 @@
+# Wave -1: the certificate authority cert-manager signs listener certificates with.
+# Self-signed in both environments: a public domain would let AWS use Let's Encrypt
+# instead, and that would be the only line to change.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-issuer
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Olivg92/platform-eks-gitops.git
+    targetRevision: main
+    path: gitops/platform/issuer
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

@@ -30,3 +30,10 @@ module "eks" {
   desired_size        = var.node_count
   public_access_cidrs = var.api_public_access_cidrs
 }
+
+module "workload_identity" {
+  source = "../../modules/workload-identity"
+
+  name         = var.name
+  cluster_name = module.eks.cluster_name
+}

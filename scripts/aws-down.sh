@@ -8,12 +8,25 @@
 set -uo pipefail
 
 TF_DIR="${TF_DIR:-terraform/envs/demo}"
+
+# The stack requires the allowed API range, on purpose: nothing should create a
+# cluster without saying who may reach it. Destroying does not care about the
+# value, so give it an inert one rather than leaving the teardown blocked.
+export TF_VAR_api_public_access_cidrs='["127.0.0.1/32"]'
 PROFILE="${AWS_PROFILE:-perso}"
 REGION="${AWS_REGION:-eu-north-1}"
 
 cluster=$(terraform -chdir="$TF_DIR" output -raw cluster_name 2>/dev/null || true)
 
 if [ -n "$cluster" ] && kubectl config current-context 2>/dev/null | grep -q "$cluster"; then
+  # Argo CD reconciles what it is told to reconcile, including during a teardown:
+  # delete the Gateway and it recreates it, and Envoy Gateway orders a brand new
+  # load balancer. Stop the controller first, or terraform waits forever on a VPC
+  # that Kubernetes keeps filling back up.
+  echo "stopping the Argo CD controller so it stops recreating what we delete..."
+  kubectl scale statefulset argocd-application-controller -n argocd --replicas=0 2>/dev/null || true
+  kubectl rollout status statefulset argocd-application-controller -n argocd --timeout=60s 2>/dev/null || true
+
   echo "removing Kubernetes objects that own AWS resources..."
   kubectl delete gateway --all -A --ignore-not-found --timeout=120s 2>/dev/null || true
   kubectl delete svc -A --field-selector spec.type=LoadBalancer --ignore-not-found --timeout=120s 2>/dev/null || true
@@ -29,7 +42,7 @@ else
   echo "no kubeconfig pointing at $cluster, skipping the Kubernetes cleanup"
 fi
 
-echo "destroying the Terraform stack..."
+echo "destroying the Terraform stack (the refresh alone takes a couple of minutes)..."
 AWS_PROFILE="$PROFILE" terraform -chdir="$TF_DIR" destroy -input=false
 
 echo

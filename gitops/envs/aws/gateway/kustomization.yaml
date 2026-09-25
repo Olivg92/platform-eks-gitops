@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../platform/gateway/base
+  - envoyproxy.yaml
+
+patches:
+  # Same shape as the local overlay: one HTTPS listener, certificate issued by
+  # the platform authority. With a real domain this issuer would be Let's Encrypt
+  # and nothing else here would change.
+  - target:
+      kind: Gateway
+      name: platform
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          cert-manager.io/cluster-issuer: platform-ca
+      - op: add
+        path: /spec/listeners/-
+        value:
+          name: https
+          protocol: HTTPS
+          port: 443
+          hostname: "*.platform.local"
+          tls:
+            mode: Terminate
+            certificateRefs:
+              - name: platform-tls
+          allowedRoutes:
+            namespaces:
+              from: All
+  # Point the GatewayClass at the settings above.
+  - target:
+      kind: GatewayClass
+      name: platform
+    patch: |-
+      - op: add
+        path: /spec/parametersRef
+        value:
+          group: gateway.envoyproxy.io
+          kind: EnvoyProxy
+          name: platform
+          namespace: envoy-gateway-system
