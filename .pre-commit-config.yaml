@@ -31,7 +31,11 @@ repos:
       - id: terraform_tflint
         args: [--args=--config=__GIT_WORKING_DIR__/.tflint.hcl]
       - id: terraform_checkov
-        args: [--args=--quiet, --args=--compact]
+        args:
+          - --args=--quiet
+          - --args=--compact
+          # Skipped checks and their justification live in .checkov.yaml.
+          - --args=--config-file=__GIT_WORKING_DIR__/.checkov.yaml
 
   - repo: local
     hooks:

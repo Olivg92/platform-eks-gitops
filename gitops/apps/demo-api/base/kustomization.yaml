@@ -4,6 +4,7 @@ namespace: demo
 resources:
   - deployment.yaml
   - traffic-generator.yaml
+  - networkpolicy.yaml
   - service.yaml
   - servicemonitor.yaml
   - slo.yaml

@@ -15,8 +15,14 @@ spec:
       labels:
         app.kubernetes.io/name: demo-api
     spec:
+      # The application never calls the Kubernetes API, so it gets no token.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
+        # Same high UID as the image, declared here so the manifest is explicit
+        # and cannot silently run as whatever the image decides later.
+        runAsUser: 10001
+        runAsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:

@@ -1,0 +1,56 @@
+# Default deny, then name what is allowed. Without this, any pod in the cluster
+# can reach the application directly and bypass the gateway.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: demo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Traffic from the shared gateway, which is the only intended public path in.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway
+  namespace: demo
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: demo-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: envoy-gateway-system
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Prometheus scraping /metrics, and the synthetic probe next door.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-and-probe
+  namespace: demo
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: demo-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: demo-api-traffic
+      ports:
+        - protocol: TCP
+          port: 8000

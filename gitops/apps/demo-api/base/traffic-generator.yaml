@@ -21,6 +21,7 @@ spec:
       labels:
         app.kubernetes.io/name: demo-api-traffic
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

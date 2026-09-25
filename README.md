@@ -96,6 +96,15 @@ Secrets never touch this repository. `gitops/envs/local/secret-store/` declares 
 needed; the value is read from Vault, which trusts the operator's ServiceAccount rather than any
 stored token. `make local-verify` prints the value that made the trip.
 
+The application namespace denies all ingress by default and names what is allowed: the gateway,
+Prometheus scraping, and the probe next door. Anything else, including a pod in another namespace,
+is refused. On EKS this needs the VPC CNI network policy feature, which the Terraform stack enables.
+
+Security checks run on every commit: `gitleaks` for secrets, `checkov` for Terraform, Kubernetes
+and Dockerfiles. The checks that are deliberately skipped are listed in
+[`.checkov.yaml`](.checkov.yaml), each with the reason. A silenced check without a justification
+hides a decision instead of documenting it.
+
 `make local-down` deletes the cluster. Run `make help` for every target.
 
 ### What it looks like
