@@ -188,6 +188,10 @@ aws-info: ## Print how to reach the platform on AWS
 	@echo
 	@echo "Remember: make down when you are finished."
 
+.PHONY: aws-verify
+aws-verify: ## Check the EKS platform end to end
+	@scripts/verify-aws.sh $(ARGOCD_NS)
+
 .PHONY: aws-gateway-url
 aws-gateway-url: ## Print the load balancer address of the gateway
 	@kubectl get svc -n envoy-gateway-system \

@@ -73,11 +73,11 @@ platform-eks-gitops/
 - [x] Un runbook par alerte dans `docs/runbooks/`
 
 ### 1.4 AWS EKS avec Terraform
-- [ ] `terraform/bootstrap` : bucket S3 versionné + chiffré pour le state
-- [ ] VPC **sans NAT Gateway** (nœuds en subnets publics avec SG stricts, ou VPC endpoints), à justifier dans un ADR
-- [ ] EKS + managed node group en **Spot**, taille minimale
-- [ ] **EKS Pod Identity** (ou IRSA) pour ESO → Secrets Manager
-- [ ] `make up` : terraform apply + bootstrap ArgoCD pointant sur le même repo
+- [x] `terraform/bootstrap` : bucket S3 versionné + chiffré pour le state (verrou natif S3, sans DynamoDB)
+- [x] VPC **sans NAT Gateway** (nœuds en subnets publics, SG stricts, IMDSv2 hop limit 1), justifié dans l'ADR 0009
+- [x] EKS 1.36 + managed node group **Spot** (2 × t3.medium), même version qu'en local
+- [x] **EKS Pod Identity** pour ESO → Secrets Manager, zéro clé (ADR 0010)
+- [x] `make up` : terraform apply + kubeconfig + ArgoCD + app-of-apps AWS
 - [ ] `make down` : suppression des ressources Kubernetes créant des LB, puis terraform destroy
 - [ ] Vérifier après `make down` qu'il ne reste rien (LB, EIP, volumes EBS)
 
