@@ -1,0 +1,7 @@
+# Copy to backend.hcl and set the bucket printed by terraform/bootstrap.
+# Not committed: the bucket name is specific to the account.
+bucket       = "platform-eks-gitops-tfstate-change-me"
+key          = "envs/demo/terraform.tfstate"
+region       = "eu-north-1"
+encrypt      = true
+use_lockfile = true

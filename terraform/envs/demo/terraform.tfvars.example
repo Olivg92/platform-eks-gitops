@@ -1,0 +1,5 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is not committed:
+# the account id is not a secret, but it does not belong in a public repository.
+account_id        = "123456789012"
+# Narrow this to your own address to keep the Kubernetes API private to you:
+# api_public_access_cidrs = ["203.0.113.4/32"]
