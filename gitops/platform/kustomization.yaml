@@ -10,3 +10,4 @@ resources:
   - secrets/application.yaml
   - kube-prometheus-stack/application.yaml
   - sloth/application.yaml
+  - monitoring-route/application.yaml

@@ -12,7 +12,7 @@ resource "random_password" "grafana" {
 # The values live here, never in git. `make down` deletes them for real rather
 # than scheduling them, so the next `make up` can recreate the same names.
 resource "aws_secretsmanager_secret" "grafana" {
-  name                    = "${var.secret_prefix}/grafana"
+  name                    = "${var.secret_prefix}grafana"
   description             = "Grafana admin credentials, read by External Secrets Operator"
   recovery_window_in_days = 0
 }
@@ -27,7 +27,7 @@ resource "aws_secretsmanager_secret_version" "grafana" {
 }
 
 resource "aws_secretsmanager_secret" "demo" {
-  name                    = "${var.secret_prefix}/demo"
+  name                    = "${var.secret_prefix}demo"
   description             = "Demo secret, the one make local-verify prints"
   recovery_window_in_days = 0
 }

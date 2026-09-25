@@ -9,7 +9,11 @@ variable "cluster_name" {
 }
 
 variable "secret_prefix" {
-  description = "Prefix the platform secrets live under in Secrets Manager."
+  description = <<-EOT
+    Optional prefix for the secret names. Empty by default so a secret is called
+    "grafana" here and "secret/grafana" in the local Vault, which lets the very
+    same ExternalSecret manifest work in both environments.
+  EOT
   type        = string
-  default     = "platform"
+  default     = ""
 }

@@ -1,4 +1,7 @@
 # Wave 1: routes, once the workloads they point at are running.
+# Shared: both environments expose Grafana on the same hostname, so the route is
+# identical. Only what sits in front differs, k3d's port mapping or an AWS
+# network load balancer.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -13,7 +16,7 @@ spec:
   source:
     repoURL: https://github.com/Olivg92/platform-eks-gitops.git
     targetRevision: main
-    path: gitops/envs/local/monitoring-route
+    path: gitops/platform/monitoring-route
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
