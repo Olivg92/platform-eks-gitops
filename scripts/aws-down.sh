@@ -69,5 +69,17 @@ if [ "$leftovers" -ne 0 ]; then
   echo "something is still running and still billing. Look at it before closing the laptop." >&2
   exit 1
 fi
+# The kubeconfig still points at the cluster that no longer exists. Left as the
+# current context, the next `make local-*` would talk to a dead endpoint, or on a
+# worse day to a live AWS cluster instead of the local one.
+arn=$(kubectl config get-contexts -o name 2>/dev/null | grep ":cluster/${cluster}$" || true)
+if [ -n "$arn" ]; then
+  kubectl config delete-context "$arn" >/dev/null 2>&1 || true
+  kubectl config delete-cluster "$arn" >/dev/null 2>&1 || true
+  kubectl config delete-user "$arn" >/dev/null 2>&1 || true
+  kubectl config use-context k3d-platform-local >/dev/null 2>&1 \
+    && echo "kubectl now points at the local cluster again"
+fi
+
 echo
 echo "everything is gone. The state bucket is the only resource left, and it costs cents."

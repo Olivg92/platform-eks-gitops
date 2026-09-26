@@ -15,6 +15,17 @@ PORT="${DEMO_PORT:-8443}"
 BASE="https://${HOST}:${PORT}"
 CURL=(curl -sk --resolve "${HOST}:${PORT}:127.0.0.1" --max-time 10)
 
+# Pods that are serving traffic, which are the only ones where injecting chaos
+# means anything. The phase is not enough in either direction during a rollout:
+# the old pod stays "Running" while it shuts down, and the new one is "Running"
+# before its container even exists. Ready and not being deleted is the test.
+# A pod that becomes Ready after `break` starts clean: the setting is in memory.
+running_pods() {
+  kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api \
+    -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.conditions[?(@.type=="Ready")].status}{" "}{.metadata.deletionTimestamp}{"\n"}{end}' \
+    | awk 'NF == 2 && $2 == "True" {print "pod/" $1}'
+}
+
 case "${1:-load}" in
   load)
     seconds="${2:-60}"; rps="${3:-5}"
@@ -37,8 +48,9 @@ case "${1:-load}" in
     echo "setting error_rate=${rate} latency_ms=${latency} on every pod"
     # The setting lives in each pod's memory, so going through the gateway would
     # only reach one replica and the injection would be half applied. Talk to
-    # every pod directly instead.
-    for pod in $(kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api -o name); do
+    # every running pod directly instead: during a rollout the label also
+    # matches pods that are shutting down, which cannot be exec'd into.
+    for pod in $(running_pods); do
       kubectl exec -n "$NS" "$pod" -- python -c "
 import json, urllib.request
 body = json.dumps({'error_rate': ${rate}, 'latency_ms': ${latency}}).encode()
@@ -49,7 +61,7 @@ print('  ${pod##*/}:', urllib.request.urlopen(req).read().decode())"
     ;;
 
   status)
-    for pod in $(kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api -o name); do
+    for pod in $(running_pods); do
       printf '  %s: ' "${pod##*/}"
       kubectl exec -n "$NS" "$pod" -- python -c "
 import urllib.request

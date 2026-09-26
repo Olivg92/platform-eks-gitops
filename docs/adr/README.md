@@ -15,3 +15,4 @@ New ADRs start from [the template](0000-template.md) and are never rewritten onc
 | [0008](0008-slo-definitions-for-the-demo-api.md) | What the demo API promises, and how it is measured | Accepted |
 | [0009](0009-public-subnets-without-a-nat-gateway.md) | Run the nodes in public subnets, without a NAT Gateway | Accepted |
 | [0010](0010-pod-identity-for-workload-credentials.md) | Give workloads AWS credentials with EKS Pod Identity | Accepted |
+| [0011](0011-runtime-image-with-no-known-vulnerabilities.md) | Ship the demo API on an image with no known vulnerabilities | Accepted |
