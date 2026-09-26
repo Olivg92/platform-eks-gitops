@@ -1,0 +1,106 @@
+name: terraform plan
+
+on:
+  pull_request:
+    paths:
+      - terraform/envs/**
+      - terraform/modules/**
+      - scripts/format-plan.sh
+      - .github/workflows/terraform-plan.yml
+
+concurrency:
+  group: plan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: plan envs/demo
+    runs-on: ubuntu-latest
+    # Skipped where it cannot work, rather than left to fail: pull requests
+    # from forks get neither secrets nor an identity token, and runs started by
+    # Dependabot have no access to Actions secrets, so there is no role to
+    # assume. Their Terraform changes are still linted, validated and scanned.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+      # The OIDC token GitHub signs for this run, exchanged for AWS credentials.
+      id-token: write
+      # Posting the plan as a comment.
+      pull-requests: write
+    env:
+      TF_DIR: terraform/envs/demo
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+
+      # No access key anywhere: GitHub signs a token saying "a pull request of
+      # this repository", AWS checks it against the trust policy of the role and
+      # returns a one-hour session. The role ARN is a secret only so that the
+      # account id it contains is masked in public logs.
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+          role-session-name: plan-pr-${{ github.event.number }}
+          aws-region: eu-north-1
+
+      - name: Init
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform -chdir="$TF_DIR" init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=envs/demo/terraform.tfstate" \
+            -backend-config="region=eu-north-1" \
+            -backend-config="use_lockfile=true"
+
+      # -refresh=false: compare the configuration with the last applied state
+      # instead of querying every managed resource, which is what a pull request
+      # changes. Data sources are still read, which is why the role can also list
+      # EKS addon versions; see terraform/bootstrap/github-oidc.tf.
+      # -lock=false: a read-only role cannot write the lock file, and a plan
+      # changes nothing that a lock would protect.
+      - name: Plan
+        id: plan
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          # The allowed API range is set by whoever ran `make up`, from their own
+          # address. Reuse the applied value so an unrelated pull request does not
+          # show the cluster's access list changing; fall back to an inert range
+          # when the environment is down and there is nothing applied to reuse.
+          applied=$(terraform -chdir="$TF_DIR" output -json api_public_access_cidrs 2>/dev/null || true)
+          export TF_VAR_api_public_access_cidrs="${applied:-[\"127.0.0.1/32\"]}"
+
+          set +e
+          terraform -chdir="$TF_DIR" plan -input=false -no-color \
+            -refresh=false -lock=false -detailed-exitcode > plan.txt 2>&1
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          cat plan.txt
+
+      - name: Comment the plan on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          PR: ${{ github.event.number }}
+          CODE: ${{ steps.plan.outputs.code }}
+        run: |
+          scripts/format-plan.sh plan.txt "$CODE" "$ACCOUNT_ID" > comment.md
+          # One comment per pull request, updated on every push, rather than a
+          # new one each time. The first run has nothing to edit yet.
+          gh pr comment "$PR" --body-file comment.md --edit-last 2>/dev/null \
+            || gh pr comment "$PR" --body-file comment.md
+
+      - name: Fail if the plan failed
+        if: steps.plan.outputs.code != '0' && steps.plan.outputs.code != '2'
+        run: exit 1

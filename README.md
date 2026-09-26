@@ -164,10 +164,22 @@ nobody can reproduce before pushing.
 |---|---|
 | lint and security | Terraform format, validation, tflint and checkov; kubeconform and yamllint on manifests; gitleaks for secrets; actionlint for the workflows themselves |
 | demo-api tests | The pytest suite, including the test that pins the metric labels the SLOs depend on |
-| manifests render | Every kustomization under `gitops/` rendered and validated, 13 today. The environment roots only list Argo CD Applications; the patches that can break live one level down, so each one is rendered |
+| manifests render | Every kustomization under `gitops/` rendered and validated, 14 today. The environment roots only list Argo CD Applications; the patches that can break live one level down, so each one is rendered |
 | demo-api image | Built and scanned with Trivy when the application changes. Findings go to the Security tab; a fixable critical one fails the build. Published to GHCR on `main` only, tagged with the commit sha |
+| terraform plan | On pull requests touching the infrastructure, the plan of `envs/demo`, posted as a comment on the pull request |
 
 `scripts/render-manifests.sh` is the same render check, runnable locally.
+
+The plan authenticates to AWS with OIDC: no access key exists anywhere in GitHub. The role it
+assumes can read the Terraform state and list EKS addon versions, nothing else, and only pull
+requests of this repository can assume it ([ADR 0012](docs/adr/0012-ci-reaches-aws-through-oidc.md)). It needs three settings
+in the repository, under Settings, Secrets and variables, Actions:
+
+| Name | Kind | Value |
+|---|---|---|
+| `AWS_PLAN_ROLE_ARN` | secret | output `ci_plan_role_arn` of `terraform/bootstrap` |
+| `AWS_ACCOUNT_ID` | secret | the account id, masked in logs and redacted from comments |
+| `TF_STATE_BUCKET` | variable | the state bucket name |
 
 Actions are pinned to a commit rather than a tag, since a tag can be moved to point at different
 code. Dependabot raises the pull requests that bump those pins, so pinning does not mean going stale.
