@@ -9,6 +9,18 @@ ARGOCD_NS      := argocd
 # Branch Argo CD follows. Override while developing: make local-up REVISION=my-branch
 REVISION       ?= main
 
+# Which cluster every target talks to. Each environment has a kubeconfig file of
+# its own and is the only thing in it; ~/.kube/config, and whatever other
+# clusters it holds, is never read and never written. Without this, a target
+# would act on the current context, whichever cluster that happens to be.
+LOCAL_KUBECONFIG := $(HOME)/.kube/platform-eks-gitops-local
+AWS_KUBECONFIG   := $(HOME)/.kube/platform-eks-gitops-aws
+ENV              ?= local
+export KUBECONFIG = $(if $(filter aws,$(ENV)),$(AWS_KUBECONFIG),$(LOCAL_KUBECONFIG))
+
+# The AWS targets always talk to the AWS cluster, whatever ENV says.
+up plan down aws-argocd aws-bootstrap aws-wait aws-info aws-verify aws-gateway-url: ENV = aws
+
 .PHONY: help
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -35,6 +47,22 @@ local-cluster: ## Create the k3d cluster (no-op if it already exists)
 	else \
 		k3d cluster create --config local/k3d-cluster.yaml; \
 	fi
+	@$(MAKE) --no-print-directory local-kubeconfig
+
+.PHONY: local-kubeconfig
+local-kubeconfig: ## Write the local cluster's credentials to its own kubeconfig file
+	@mkdir -p $(dir $(LOCAL_KUBECONFIG))
+	@k3d kubeconfig write $(CLUSTER_NAME) --output $(LOCAL_KUBECONFIG) >/dev/null
+	@chmod 600 $(LOCAL_KUBECONFIG)
+	@echo "kubeconfig: $(LOCAL_KUBECONFIG)"
+
+.PHONY: context
+context: ## Show which cluster the targets talk to (ENV=local or ENV=aws)
+	@echo "environment: $(ENV)"
+	@echo "kubeconfig:  $$KUBECONFIG"
+	@contexts=$$(kubectl config get-contexts -o name 2>/dev/null); \
+	if [ -n "$$contexts" ]; then echo "$$contexts" | sed 's/^/context:     /'; \
+	else echo "context:     none, this environment is not running"; fi
 
 .PHONY: local-argocd
 local-argocd: ## Install Argo CD with Helm
@@ -126,6 +154,7 @@ argocd-password: ## Print the initial Argo CD admin password
 local-restart: ## Stop and start the cluster (refreshes node DNS, reloads generated secrets)
 	k3d cluster stop $(CLUSTER_NAME)
 	k3d cluster start $(CLUSTER_NAME)
+	@$(MAKE) --no-print-directory local-kubeconfig
 	@# Vault runs in dev mode, so a restart wipes it and regenerates the Grafana
 	@# password. Grafana only reads it at startup, so it has to be restarted after
 	@# External Secrets has published the new value.
@@ -141,6 +170,7 @@ grafana-reload: ## Restart Grafana so it picks up a regenerated admin password
 .PHONY: local-down
 local-down: ## Delete the k3d cluster
 	k3d cluster delete $(CLUSTER_NAME)
+	@rm -f $(LOCAL_KUBECONFIG)
 
 ## ---- AWS (EKS, costs money: always finish with `make down`) ----
 
@@ -161,7 +191,8 @@ up: ## Create the EKS demo environment (about $0.15/hour, always finish with mak
 	@# only to the command that follows it, and the substitution runs before that,
 	@# which sent the state read to whatever profile happened to be the default.
 	@name=$$(AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) output -raw cluster_name); \
-	AWS_PROFILE=$(AWS_PROFILE) aws eks update-kubeconfig --region $(AWS_REGION) --name $$name
+	AWS_PROFILE=$(AWS_PROFILE) aws eks update-kubeconfig --region $(AWS_REGION) --name $$name \
+		--kubeconfig $(AWS_KUBECONFIG)
 	@$(MAKE) --no-print-directory aws-argocd aws-bootstrap aws-wait aws-info
 
 .PHONY: aws-argocd

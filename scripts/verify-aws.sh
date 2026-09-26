@@ -4,6 +4,9 @@
 # what changes between environments is the plumbing, not the platform.
 set -uo pipefail
 
+# AWS only: the EKS cluster's own kubeconfig, written by `make up`.
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/platform-eks-gitops-aws}"
+
 NS_ARGOCD="${1:-argocd}"
 failed=0
 
