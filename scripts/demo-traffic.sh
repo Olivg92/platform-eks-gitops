@@ -9,6 +9,10 @@
 # Everything goes through the gateway, so the measured path is the real one.
 set -uo pipefail
 
+# Local only: default to the local cluster's own kubeconfig, never to
+# ~/.kube/config, whose current context may be an unrelated cluster.
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/platform-eks-gitops-local}"
+
 NS="${DEMO_NS:-demo}"
 HOST="${DEMO_HOST:-demo.platform.local}"
 PORT="${DEMO_PORT:-8443}"

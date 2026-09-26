@@ -16,6 +16,7 @@ Le plan complet et l'avancement sont dans @PLAN.md : le lire avant toute tâche 
 - **Local d'abord** : tout doit fonctionner sur k3d avant d'aller sur EKS.
 - **Infra = code** : toute ressource AWS est créée par Terraform, jamais à la main ni via le MCP AWS. Le MCP sert uniquement à lire (doc, inspection, vérification après `make down`).
 - **Compte AWS** : toujours utiliser le profil `perso` (`AWS_PROFILE=perso`), jamais `default`.
+- **Kubernetes** : ne jamais utiliser le kubeconfig par défaut, qui peut contenir d'autres clusters. Passer par les cibles `make`, ou `KUBECONFIG=~/.kube/platform-eks-gitops-local` (ou `-aws`).
 
 ## Façon de travailler
 - Avancer phase par phase selon PLAN.md, une branche + une PR par étape

@@ -9,6 +9,10 @@
 # scripts/dev-follow-revision.sh pauses the root application on purpose.
 set -euo pipefail
 
+# Shared by the local and AWS environments, so there is no safe default: refuse
+# to fall back on ~/.kube/config, which may point at an unrelated cluster.
+: "${KUBECONFIG:?set KUBECONFIG, or run this through make, which does}"
+
 NS="${1:-argocd}"
 TIMEOUT="${2:-600}"
 INTERVAL=10

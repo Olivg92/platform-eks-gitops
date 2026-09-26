@@ -3,6 +3,10 @@
 # what is missing, so a failure points at the component to look at.
 set -uo pipefail
 
+# Local only: default to the local cluster's own kubeconfig, never to
+# ~/.kube/config, whose current context may be an unrelated cluster.
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/platform-eks-gitops-local}"
+
 NS_ARGOCD="${1:-argocd}"
 failed=0
 

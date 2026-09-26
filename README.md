@@ -123,6 +123,28 @@ generated in the secret store, so it exists nowhere in this repository.
 
 ![Output of make local-verify](docs/images/make-local-verify.png)
 
+### Which cluster am I talking to?
+
+Each environment has a kubeconfig file of its own, and every `make` target uses one explicitly:
+`~/.kube/platform-eks-gitops-local` for k3d, `~/.kube/platform-eks-gitops-aws` for EKS. The default
+`~/.kube/config` is never read and never written, so the targets cannot act on another cluster the
+machine happens to know about, and creating the local cluster no longer switches the current context
+of whoever was working on something else.
+
+```bash
+make context              # the local cluster
+make context ENV=aws      # the EKS cluster, or "not running"
+```
+
+To use `kubectl` by hand, point it at the same file:
+
+```bash
+export KUBECONFIG=~/.kube/platform-eks-gitops-local
+```
+
+The scripts shared by both environments refuse to run without `KUBECONFIG` rather than fall back on
+the default one.
+
 ### Troubleshooting
 
 | Symptom | Cause | Fix |

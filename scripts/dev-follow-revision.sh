@@ -9,6 +9,10 @@
 # Usage: scripts/dev-follow-revision.sh <branch> [namespace]
 set -euo pipefail
 
+# Shared by the local and AWS environments, so there is no safe default: refuse
+# to fall back on ~/.kube/config, which may point at an unrelated cluster.
+: "${KUBECONFIG:?set KUBECONFIG, or run this through make, which does}"
+
 REVISION="${1:?usage: $0 <branch> [namespace]}"
 NS="${2:-argocd}"
 # Local and AWS have their own root application.

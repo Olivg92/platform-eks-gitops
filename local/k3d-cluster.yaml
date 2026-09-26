@@ -22,6 +22,9 @@ options:
       - arg: --disable=traefik
         nodeFilters:
           - server:*
+  # The cluster's credentials go to a file of their own, written by
+  # `make local-cluster`, never into ~/.kube/config. Switching the default
+  # context on creation would silently repoint whatever the user was working on.
   kubeconfig:
-    updateDefaultKubeconfig: true
-    switchCurrentContext: true
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false
