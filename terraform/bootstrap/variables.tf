@@ -18,3 +18,9 @@ variable "state_bucket_name" {
   description = "Globally unique name for the state bucket. Set it in terraform.tfvars."
   type        = string
 }
+
+variable "github_repository" {
+  description = "owner/name of the repository allowed to assume the CI role."
+  type        = string
+  default     = "Olivg92/platform-eks-gitops"
+}
