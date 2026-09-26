@@ -64,3 +64,21 @@ Two guards make the moving base safe:
   measured above and verified under the same constraints: a two-line change in the Dockerfile.
 - "Zero" describes a date, not a property. New CVEs will be published; what changes is how fast
   the base image absorbs them.
+
+## Update, 2026-09-26: the digests will not stay fresh on their own
+
+This decision assumed Dependabot would raise a pull request each time Chainguard published a new
+digest. That assumption does not hold reliably for this registry's `latest` tags: in at least one
+public repository using `cgr.dev/chainguard/python:latest@sha256`, Dependabot declared the image
+"no longer updatable" and stopped proposing bumps without warning, leaving two CVE fixes to be
+applied by hand ([zachmce/nfl-pickem#189](https://github.com/zachmce/nfl-pickem/issues/189)).
+One of them, CVE-2026-15308, was among the findings this image was chosen to eliminate.
+
+The failure mode matters more than the cause: an image pinned by digest does not get worse, it
+simply stops getting better, and nothing turns red. "Zero known vulnerabilities" would decay into
+the same list distroless started with, silently.
+
+Dependabot stays configured, with both stages grouped so that a bump, when it comes, moves them
+together. It is no longer the only safeguard: a scheduled workflow, planned as the next change,
+checks the pinned digests against the published ones and scans the image already in the registry,
+so that staleness and newly published CVEs both surface without anyone having to look.
