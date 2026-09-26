@@ -132,6 +132,24 @@ generated in the secret store, so it exists nowhere in this repository.
 | Grafana rejects the password from `make grafana-password`, usually after a machine reboot | Vault runs in dev mode and keeps nothing on disk, so it regenerates the password on restart. Grafana only reads it when it starts, so it still holds the previous one. | `make grafana-reload` |
 | An application stays `OutOfSync` while everything is healthy | Expected while testing a branch: the root application is paused on purpose (see [Development](#development)). | `make local-bootstrap` once the branch is merged |
 
+## Continuous integration
+
+Every pull request runs the same checks as a developer machine, from the same
+[`.pre-commit-config.yaml`](.pre-commit-config.yaml): a check that only exists in CI is a check
+nobody can reproduce before pushing.
+
+| Job | What it catches |
+|---|---|
+| lint and security | Terraform format, validation, tflint and checkov; kubeconform and yamllint on manifests; gitleaks for secrets; actionlint for the workflows themselves |
+| demo-api tests | The pytest suite, including the test that pins the metric labels the SLOs depend on |
+| manifests render | Every kustomization under `gitops/` rendered and validated, 13 today. The environment roots only list Argo CD Applications; the patches that can break live one level down, so each one is rendered |
+| demo-api image | Built and scanned with Trivy when the application changes. Findings go to the Security tab; a fixable critical one fails the build. Published to GHCR on `main` only, tagged with the commit sha |
+
+`scripts/render-manifests.sh` is the same render check, runnable locally.
+
+Actions are pinned to a commit rather than a tag, since a tag can be moved to point at different
+code. Dependabot raises the pull requests that bump those pins, so pinning does not mean going stale.
+
 ## Repository layout
 
 | Path | Content |

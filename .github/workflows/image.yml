@@ -1,0 +1,113 @@
+name: demo-api image
+
+on:
+  pull_request:
+    paths:
+      - apps/demo-api/**
+      - .github/workflows/image.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/demo-api/**
+      - .github/workflows/image.yml
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only by default; the job that needs to publish asks for more, and only
+# for itself.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build, scan and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Pushing to GHCR and reporting vulnerabilities in the Security tab.
+      packages: write
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Image names must be lowercase and the owner here is "Olivg92". Expressions
+      # have no lower() function, so the name is computed once, in the shell, and
+      # every later step reads it from the environment.
+      - name: Name the image
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/demo-api" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Work out the tags
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          # The commit sha is the tag that matters: it is immutable, so a
+          # deployment always names exactly one build. `latest` is a convenience
+          # for humans, never what the cluster references.
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Built once, into the local daemon, so the very image that gets scanned
+      # is the one that gets pushed.
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: apps/demo-api
+          load: true
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan for known vulnerabilities
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          # The report is uploaded even when something is found: a build that
+          # fails silently teaches nothing, and the Security tab keeps the trail.
+          exit-code: "0"
+
+      - name: Publish the report to the Security tab
+        uses: github/codeql-action/upload-sarif@416ff0dea110f80f0f56f0046500dbf7420e4bb0 # v4.32.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-demo-api
+
+      # A critical vulnerability with a fix available stops the build. One
+      # without a fix does not: there is nothing to do about it today, and a
+      # permanently red pipeline is a pipeline nobody reads.
+      - name: Fail on fixable critical findings
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pull requests build and scan, they never publish: an image on a public
+      # registry is a promise, and a proposal is not a promise yet.
+      # --all-tags pushes every tag of the image built above. Looping over the
+      # metadata output instead breaks as soon as there are two tags, since they
+      # arrive newline-separated, and interpolating ${{ }} straight into a
+      # script is an injection pattern anyway.
+      - name: Push
+        if: github.event_name == 'push'
+        run: docker push --all-tags "$IMAGE"

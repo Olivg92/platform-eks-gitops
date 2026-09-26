@@ -1,0 +1,99 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch cancels the previous run: no point spending
+# minutes on a commit nobody will look at.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Actions are pinned by commit rather than by tag. A tag can be moved to point
+# at different code; a commit cannot. Dependabot raises the pull requests that
+# bump them, so pinning does not mean going stale.
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: lint and security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.4
+          # The wrapper rewrites stdout, which confuses the pre-commit hooks.
+          terraform_wrapper: false
+
+      - uses: terraform-linters/setup-tflint@1cf010d3c7aef302051ccdb68c14c5dc2efa34ef # v6.3.1
+        with:
+          tflint_version: v0.64.0
+
+      - name: Install the tools the hooks call
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | sudo tar xz -C /usr/local/bin kubeconform
+          pip install --no-cache-dir checkov==3.3.19 pre-commit==4.6.2
+
+      # The plugin comes from the GitHub API, which allows 60 anonymous calls
+      # an hour per address; shared runners exhaust that routinely.
+      - name: Install the tflint AWS ruleset
+        run: tflint --init --config "$GITHUB_WORKSPACE/.tflint.hcl"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # The same hooks as on a developer machine, from the same file. A check
+      # that only runs in CI is a check nobody can reproduce before pushing.
+      - name: Run every pre-commit hook
+        run: pre-commit run --all-files --show-diff-on-failure --color always
+
+  tests:
+    name: demo-api tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/demo-api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: apps/demo-api/requirements-dev.txt
+
+      - run: pip install --no-cache-dir -r requirements-dev.txt
+
+      - run: pytest -q
+
+  manifests:
+    name: manifests render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install kustomize and kubeconform
+        run: |
+          curl -fsSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz \
+            | sudo tar xz -C /usr/local/bin kustomize
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | sudo tar xz -C /usr/local/bin kubeconform
+
+      # kubeconform in pre-commit validates the files as written; this validates
+      # what they produce once bases and patches are combined, which is what
+      # Argo CD actually sends to the API server.
+      #
+      # Every kustomization is rendered, not just the environment roots: those
+      # only list Argo CD Applications, while the patches that can break (the
+      # gateway TLS listener, the demo API overlay) live one level down.
+      - name: Render every kustomization
+        run: scripts/render-manifests.sh
