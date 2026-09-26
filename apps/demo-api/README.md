@@ -17,7 +17,7 @@ Failure injection is the point: an error budget that never moves teaches nothing
 ## Run it locally
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt   # Python 3.14, like the image
 uvicorn app.main:app --reload
 pytest
 ```
@@ -30,9 +30,10 @@ make demo-image      # from the repository root: builds and imports into k3d
 
 ## The image
 
-The runtime image is distroless: the Python interpreter and its libraries, no shell, no pip,
-100 MB. There is nothing to `kubectl exec` into; to debug a running pod, attach an ephemeral
-container instead:
+Built on Chainguard images, which carry no known vulnerability at the time of writing, against 159
+findings on `python:slim`. There is no shell and no pip in the runtime image, 115 MB.
+
+With nothing to `kubectl exec` into, a running pod is debugged by attaching an ephemeral container:
 
 ```bash
 make demo-debug
@@ -43,7 +44,8 @@ busybox container that shares its process namespace. From there `ps` shows the A
 and `/proc/1/root/app` is the application's filesystem. The debug container inherits the pod's
 non-root UID, so it cannot do more than the application itself could.
 
-See [ADR 0011](../../docs/adr/0011-distroless-runtime-image.md) for the measurements behind it.
+See [ADR 0011](../../docs/adr/0011-runtime-image-with-no-known-vulnerabilities.md) for the
+measurements, the alternatives, and why CI starts the image rather than only scanning it.
 
 Metric labels are kept low cardinality on purpose: the route template rather than the raw path,
 so unmatched requests cannot create an unbounded number of time series.

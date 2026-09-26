@@ -65,6 +65,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # A clean scan proves the image has no known vulnerability, not that it
+      # works. The base image follows a moving tag, so a Python bump could build,
+      # scan clean, and crash on start. Run it under the Deployment's own
+      # constraints and ask it whether it is alive.
+      - name: Smoke test
+        run: |
+          docker run -d --name smoke -p 8000:8000 \
+            --user 10001:10001 --read-only --cap-drop ALL \
+            --security-opt no-new-privileges "$IMAGE:sha-$GITHUB_SHA"
+          trap 'docker logs smoke; docker rm -f smoke >/dev/null' EXIT
+          for _ in $(seq 1 30); do
+            curl -fsS localhost:8000/healthz >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS localhost:8000/healthz
+          curl -fsS localhost:8000/metrics | grep -q '^http_requests_total'
+          echo "image starts and serves metrics"
+
       - name: Scan for known vulnerabilities
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
