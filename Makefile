@@ -208,8 +208,22 @@ down: ## Destroy the EKS demo environment and check nothing is left billing
 	@AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) TF_DIR=$(TF_DEMO) scripts/aws-down.sh
 
 .PHONY: cost
-cost: ## Show this month's AWS spend (one Cost Explorer call, billed $0.01)
+cost: ## Show this month's AWS spend, credits excluded (one Cost Explorer call, billed $0.01)
+	@# Credits are subtracted by default, which reports roughly zero while free
+	@# credits last and hides what the environment actually consumes. Excluding
+	@# them answers the question worth asking: what would this cost for real?
 	@AWS_PROFILE=$(AWS_PROFILE) aws ce get-cost-and-usage \
 		--time-period Start=$$(date -u +%Y-%m-01),End=$$(date -u -d tomorrow +%Y-%m-%d) \
 		--granularity MONTHLY --metrics UnblendedCost \
+		--filter '{"Not":{"Dimensions":{"Key":"RECORD_TYPE","Values":["Credit","Refund"]}}}' \
 		--query 'ResultsByTime[0].Total.UnblendedCost.[Amount,Unit]' --output text
+
+.PHONY: cost-by-service
+cost-by-service: ## Break this month's spend down by service (one Cost Explorer call, billed $0.01)
+	@AWS_PROFILE=$(AWS_PROFILE) aws ce get-cost-and-usage \
+		--time-period Start=$$(date -u +%Y-%m-01),End=$$(date -u -d tomorrow +%Y-%m-%d) \
+		--granularity MONTHLY --metrics UnblendedCost \
+		--filter '{"Not":{"Dimensions":{"Key":"RECORD_TYPE","Values":["Credit","Refund"]}}}' \
+		--group-by Type=DIMENSION,Key=SERVICE \
+		--query 'ResultsByTime[0].Groups[?Metrics.UnblendedCost.Amount!=`0`].[Keys[0],Metrics.UnblendedCost.Amount]' \
+		--output text | sort -k2 -rn

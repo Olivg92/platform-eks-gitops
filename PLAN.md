@@ -78,8 +78,8 @@ platform-eks-gitops/
 - [x] EKS 1.36 + managed node group **Spot** (2 × t3.medium), même version qu'en local
 - [x] **EKS Pod Identity** pour ESO → Secrets Manager, zéro clé (ADR 0010)
 - [x] `make up` : terraform apply + kubeconfig + ArgoCD + app-of-apps AWS
-- [ ] `make down` : suppression des ressources Kubernetes créant des LB, puis terraform destroy
-- [ ] Vérifier après `make down` qu'il ne reste rien (LB, EIP, volumes EBS)
+- [x] `make down` : arrêt d'ArgoCD, suppression des LB créés par Kubernetes, puis terraform destroy
+- [x] Vérifier après `make down` qu'il ne reste rien (LB, EIP, volumes EBS) : `scripts/aws-down.sh` le contrôle et sort en erreur sinon
 
 ### 1.5 CI GitHub Actions
 - [ ] Terraform : `fmt -check`, `validate`, `tflint`, `checkov`

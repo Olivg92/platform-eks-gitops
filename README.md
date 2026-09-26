@@ -154,6 +154,36 @@ here is one I can explain and defend.
 
 ## Cost
 
+Measured, not estimated: a session where the cluster lived for one hour and seven minutes, billed
+in eu-north-1 with credits excluded.
+
+| Service | Cost | Share |
+|---|---|---|
+| EKS control plane | $0.1119 | 46% |
+| Load balancer | $0.0479 | 20% |
+| Cost Explorer API | $0.0400 | 16% |
+| EC2, two spot nodes | $0.0187 | 8% |
+| VPC, public IPv4 addresses | $0.0162 | 7% |
+| EBS, 40 GB | $0.0087 | 4% |
+| Secrets Manager, S3 | $0.0013 | 1% |
+| **Total** | **$0.2446** | |
+
+About **$0.18 per hour**, and three things worth noticing.
+
+**The control plane is nearly half the bill and the compute is 8%.** Shrinking the nodes would save
+almost nothing: what saves money is destroying the cluster, which is why `make down` exists and why
+the teardown verifies itself.
+
+**Measuring the cost costs money.** Every `make cost` is a Cost Explorer call billed at $0.01, and
+four of them make up 16% of this bill. Worth knowing before putting one in a loop.
+
+**The load balancer cost twice what it should have.** A botched teardown left two of them running
+for a few minutes, because Argo CD recreated the gateway while it was being deleted. The incident is
+in [the runbook](docs/runbooks/), and it has a price tag.
+
+For reference, the same platform with the usual production defaults would add a NAT Gateway per
+zone, around $0.09 per hour before traffic, which is more than everything above combined.
+
 The EKS environment is meant to live for a few hours, then be destroyed with `make down`.
 The measured cost of a demo session will be documented here.
 
