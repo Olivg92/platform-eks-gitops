@@ -72,6 +72,10 @@ jobs:
           format: sarif
           output: trivy.sarif
           severity: CRITICAL,HIGH
+          # Without this the severity filter only applies to the console output,
+          # and the SARIF report sent to GitHub carries every finding: 159 of
+          # them on the first run, where 46 were meant to be reported.
+          limit-severities-for-sarif: true
           # The report is uploaded even when something is found: a build that
           # fails silently teaches nothing, and the Security tab keeps the trail.
           exit-code: "0"

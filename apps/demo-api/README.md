@@ -28,5 +28,22 @@ pytest
 make demo-image      # from the repository root: builds and imports into k3d
 ```
 
+## The image
+
+The runtime image is distroless: the Python interpreter and its libraries, no shell, no pip,
+100 MB. There is nothing to `kubectl exec` into; to debug a running pod, attach an ephemeral
+container instead:
+
+```bash
+make demo-debug
+```
+
+It picks a running pod, since `kubectl debug` takes a pod and not a Deployment, and attaches a
+busybox container that shares its process namespace. From there `ps` shows the API's processes,
+and `/proc/1/root/app` is the application's filesystem. The debug container inherits the pod's
+non-root UID, so it cannot do more than the application itself could.
+
+See [ADR 0011](../../docs/adr/0011-distroless-runtime-image.md) for the measurements behind it.
+
 Metric labels are kept low cardinality on purpose: the route template rather than the raw path,
 so unmatched requests cannot create an unbounded number of time series.

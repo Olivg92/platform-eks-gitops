@@ -84,6 +84,13 @@ demo-break: ## Make the demo API fail (make demo-break RATE=0.3 LATENCY=0)
 demo-fix: ## Stop the injected failures
 	@scripts/demo-traffic.sh fix
 
+.PHONY: demo-debug
+demo-debug: ## Attach a shell to a running demo API pod (the image itself has none)
+	@pod=$$(kubectl get pod -n demo -l app.kubernetes.io/name=demo-api \
+		--field-selector=status.phase=Running -o name | head -1); \
+	echo "attaching to $$pod, the API's files are under /proc/1/root/app"; \
+	kubectl debug -n demo -it $$pod --image=busybox:1.37 --target=demo-api
+
 .PHONY: local-verify
 local-verify: ## Check the platform end to end (applications, gateway, secrets)
 	@scripts/verify-local.sh $(ARGOCD_NS)

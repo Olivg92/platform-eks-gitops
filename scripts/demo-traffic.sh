@@ -37,8 +37,9 @@ case "${1:-load}" in
     echo "setting error_rate=${rate} latency_ms=${latency} on every pod"
     # The setting lives in each pod's memory, so going through the gateway would
     # only reach one replica and the injection would be half applied. Talk to
-    # every pod directly instead.
-    for pod in $(kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api -o name); do
+    # every running pod directly instead: during a rollout the label also
+    # matches pods that are shutting down, which cannot be exec'd into.
+    for pod in $(kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api --field-selector=status.phase=Running -o name); do
       kubectl exec -n "$NS" "$pod" -- python -c "
 import json, urllib.request
 body = json.dumps({'error_rate': ${rate}, 'latency_ms': ${latency}}).encode()
@@ -49,7 +50,7 @@ print('  ${pod##*/}:', urllib.request.urlopen(req).read().decode())"
     ;;
 
   status)
-    for pod in $(kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api -o name); do
+    for pod in $(kubectl get pods -n "$NS" -l app.kubernetes.io/name=demo-api --field-selector=status.phase=Running -o name); do
       printf '  %s: ' "${pod##*/}"
       kubectl exec -n "$NS" "$pod" -- python -c "
 import urllib.request
