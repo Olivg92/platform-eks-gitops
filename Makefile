@@ -92,7 +92,10 @@ local-info: ## Print how to reach Argo CD and the gateway
 	@echo ""
 	@echo "Argo CD:  make argocd-ui   then http://localhost:8081 (user: admin)"
 	@echo "Password: make argocd-password"
-	@echo "Gateway:  http://localhost:8080 (no route attached yet)"
+	@echo "Check:    make local-verify"
+	@echo "Grafana:  https://grafana.platform.local:8443 (user: admin, make grafana-password)"
+	@echo "Demo API: https://demo.platform.local:8443"
+	@echo "          both names resolve to 127.0.0.1 once added to /etc/hosts, see the README"
 
 .PHONY: demo-image
 demo-image: ## Build the demo API image and import it into the k3d cluster
@@ -183,7 +186,7 @@ MY_IP       ?= $(shell curl -fsS --max-time 5 https://checkip.amazonaws.com || e
 TF_API_CIDR := -var=api_public_access_cidrs=["\"$(MY_IP)/32\""]
 
 .PHONY: up
-up: ## Create the EKS demo environment (about $0.15/hour, always finish with make down)
+up: ## Create the EKS demo environment (about $0.18/hour, always finish with make down)
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
 	@echo "restricting the Kubernetes API to $(MY_IP)/32"
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) apply -input=false $(TF_API_CIDR)

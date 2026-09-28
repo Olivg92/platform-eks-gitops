@@ -33,8 +33,9 @@ kubeconfig
 *.swp
 .DS_Store
 
-# Local-only AI assistant instructions
+# Local-only AI assistant instructions, and the personal roadmap they follow
 CLAUDE.local.md
+PLAN.md
 
 # Python
 __pycache__/

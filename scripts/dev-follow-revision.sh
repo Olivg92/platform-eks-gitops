@@ -27,19 +27,25 @@ kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
 # Argo CD caches git state, so ask for a fresh read instead of waiting a minute.
 kubectl annotate application "$ROOT_APP" -n "$NS" \
   argocd.argoproj.io/refresh=hard --overwrite >/dev/null
-sleep 5
 
-expected=$(kubectl get application "$ROOT_APP" -n "$NS" \
-  -o jsonpath='{.status.resources[*].name}' | wc -w)
-for _ in $(seq 1 30); do
-  found=$(kubectl get applications -n "$NS" -o name | grep -vc "/$ROOT_APP$" || true)
-  # `(( ... )) && break` would return non-zero when the condition is false,
-  # which `set -e` turns into an exit. Spell the test out instead.
-  if (( found > 0 && found >= expected )); then
+# The root creates its applications wave by wave, in one sync. Pausing it before
+# that sync ends leaves the last wave created after the patches below, still
+# tracking main: counting the applications that exist is not enough, as the
+# demo-api on EKS once showed. Wait until the root is Synced, which only holds
+# once every application it declares exists.
+for _ in $(seq 1 90); do
+  refreshing=$(kubectl get application "$ROOT_APP" -n "$NS" \
+    -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}')
+  sync=$(kubectl get application "$ROOT_APP" -n "$NS" -o jsonpath='{.status.sync.status}')
+  if [ -z "$refreshing" ] && [ "$sync" = "Synced" ]; then
     break
   fi
   sleep 2
 done
+if [ "$sync" != "Synced" ]; then
+  echo "$ROOT_APP did not finish creating its applications (sync: ${sync:-unknown})" >&2
+  exit 1
+fi
 
 echo "pausing auto-sync on $ROOT_APP so it does not revert the patches"
 kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
@@ -64,5 +70,20 @@ print(json.dumps({"spec": {key: spec[key]}}))') || continue
   kubectl patch "$app" -n "$NS" --type merge -p "$patch" >/dev/null
   echo "  ${app#application.argoproj.io/} -> $REVISION"
 done
+
+# An application left on main would test main while claiming to test the
+# branch. Fail loudly rather than let that pass.
+left=$(kubectl get applications -n "$NS" -o json | ROOT_APP="$ROOT_APP" python3 -c '
+import json, os, sys
+for app in json.load(sys.stdin)["items"]:
+    spec = app["spec"]
+    sources = spec.get("sources") or ([spec["source"]] if "source" in spec else [])
+    if app["metadata"]["name"] != os.environ["ROOT_APP"] and any(
+            s.get("targetRevision") == "main" and "chart" not in s for s in sources):
+        print(app["metadata"]["name"])')
+if [ -n "$left" ]; then
+  echo "still tracking main: $left" >&2
+  exit 1
+fi
 
 echo "done. Run 'make local-bootstrap' to hand control back to git after merging."

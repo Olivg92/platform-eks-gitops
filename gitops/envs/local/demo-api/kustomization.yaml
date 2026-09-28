@@ -6,7 +6,7 @@ resources:
 
 images:
   # Built locally and imported into k3d by `make demo-image`. The AWS overlay
-  # will point at the image published by CI instead.
+  # points at the image CI publishes to GHCR instead.
   - name: demo-api
     newTag: dev
 
