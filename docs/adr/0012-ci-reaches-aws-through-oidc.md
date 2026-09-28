@@ -44,9 +44,10 @@ environment is destroyed every session and CI must keep working when it is.
 - The plan does not detect drift, only what a change would do. On an environment rebuilt from code
   every session there is little drift to detect, and a scheduled job with a broader role would be
   the answer if there were.
-- **The state file contains secrets**, the Grafana password among them, so a role that reads it
-  can read those too. That is why the trust policy is this narrow, and why the plan output relies
-  on Terraform masking sensitive values before it is posted.
+- **A role that reads the state reads everything in it**, so the state holds no secret: the Grafana
+  password is an ephemeral value, sent to Secrets Manager through a write-only argument and never
+  stored. The trust policy stays narrow all the same, since the state still maps the whole
+  environment.
 - The account id appears in role ARNs and in plan output. The role ARN is stored as a secret so
   GitHub masks it in public logs, and the account id is redacted from the comment before it is
   posted.

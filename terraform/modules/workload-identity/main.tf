@@ -4,7 +4,9 @@
 # store is Secrets Manager and the identity is EKS Pod Identity. Same pattern in
 # both: the workload proves who it is, nothing is stored as a shared credential.
 
-resource "random_password" "grafana" {
+# Ephemeral: generated during the apply and never written to the state, which
+# the CI plan role can read. Each `make up` gets a fresh password.
+ephemeral "random_password" "grafana" {
   length  = 24
   special = false # avoids quoting surprises when the value travels through YAML
 }
@@ -20,10 +22,13 @@ resource "aws_secretsmanager_secret" "grafana" {
 resource "aws_secretsmanager_secret_version" "grafana" {
   secret_id = aws_secretsmanager_secret.grafana.id
 
-  secret_string = jsonencode({
+  # Write-only: sent to Secrets Manager, never stored in the state. Terraform
+  # sends it again only when the version changes, so bump it to rotate.
+  secret_string_wo = jsonencode({
     admin-user     = "admin"
-    admin-password = random_password.grafana.result
+    admin-password = ephemeral.random_password.grafana.result
   })
+  secret_string_wo_version = 1
 }
 
 resource "aws_secretsmanager_secret" "demo" {
