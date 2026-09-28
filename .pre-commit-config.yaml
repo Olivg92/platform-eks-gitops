@@ -32,6 +32,10 @@ repos:
         args: [--args=--config=__GIT_WORKING_DIR__/.tflint.hcl]
       - id: terraform_checkov
         args:
+          # Checkov's fork pool deadlocks now and then: the workers exit and the
+          # parent waits on them forever at 0% CPU. These directories are small
+          # enough that a sequential scan costs nothing noticeable.
+          - --env-vars=CHECKOV_PARALLELIZATION_TYPE=none
           - --args=--quiet
           - --args=--compact
           # Skipped checks and their justification live in .checkov.yaml.
