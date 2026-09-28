@@ -24,14 +24,10 @@ updates:
     commit-message:
       prefix: "chore"
     # The build and runtime stages must share a Python version, since compiled
-    # dependencies are built for one interpreter. Grouped, they move in a single
-    # pull request; separately, main could run a runtime newer than its build.
-    # Dependabot's handling of this registry's `latest` digests is not reliable
-    # on its own; see the update at the end of docs/adr/0011.
-    groups:
-      chainguard-python:
-        patterns:
-          - "cgr.dev/chainguard/python*"
+    # dependencies are built for one interpreter. No group is needed for that:
+    # both stages use chainguard/python, one dependency to Dependabot, so both
+    # digests move in the same pull request (#17 did). Its handling of this
+    # registry's `latest` digests is not reliable on its own; see docs/adr/0011.
 
   - package-ecosystem: terraform
     directories:
