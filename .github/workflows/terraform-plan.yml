@@ -19,12 +19,16 @@ jobs:
   plan:
     name: plan envs/demo
     runs-on: ubuntu-latest
-    # Skipped where it cannot work, rather than left to fail: pull requests
-    # from forks get neither secrets nor an identity token, and runs started by
-    # Dependabot have no access to Actions secrets, so there is no role to
-    # assume. Their Terraform changes are still linted, validated and scanned.
+    # Skipped where it cannot work, rather than left to fail. It stays off until
+    # the repository variable TF_STATE_BUCKET is set, which it is not here: the
+    # AWS account this demo runs on cannot create the OIDC provider the role
+    # depends on (docs/adr/0012). Pull requests from forks get neither secrets
+    # nor an identity token, and runs started by Dependabot have no access to
+    # Actions secrets, so there is no role to assume. Their Terraform changes are
+    # still linted, validated and scanned.
     if: >-
-      github.event.pull_request.head.repo.full_name == github.repository
+      vars.TF_STATE_BUCKET != ''
+      && github.event.pull_request.head.repo.full_name == github.repository
       && github.actor != 'dependabot[bot]'
     permissions:
       contents: read
