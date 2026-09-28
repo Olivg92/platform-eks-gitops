@@ -9,8 +9,8 @@
 # compiled dependencies (pydantic-core, uvloop) require.
 #
 # Dependabot is configured to propose digest bumps, but its support for this
-# registry's `latest` tags has been seen to stop silently. Do not rely on it
-# alone to keep this image fresh: see the update at the end of docs/adr/0011.
+# registry's `latest` tags has been seen to stop silently. The image freshness
+# workflow fails when that happens: see the update at the end of docs/adr/0011.
 
 FROM cgr.dev/chainguard/python:latest-dev@sha256:87729167739190d9309588120a8ac0ffbf2eb95dd895abb9bada6bb9ecbf5a04 AS build
 USER root

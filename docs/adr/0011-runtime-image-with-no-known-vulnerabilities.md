@@ -80,6 +80,15 @@ the same list distroless started with, silently.
 
 Dependabot stays configured. Both stages use the same image, one dependency to Dependabot, so a
 bump moves them together in a single pull request, as #17 did. It is no longer the only
-safeguard: a scheduled workflow, planned as the next change, checks the pinned digests against the
-published ones and scans the image already in the registry, so that staleness and newly published
-CVEs both surface without anyone having to look.
+safeguard: the `image freshness` workflow runs every Monday and does two things.
+
+- It reads the build date of each pinned base image from the registry, and fails past 14 days.
+  Comparing the pinned digest with the published one would not work: Chainguard rebuilds daily,
+  so the two differ almost every day. Two weeks is the weekly bump plus a week of slack; past
+  that, Dependabot has missed one.
+- It rescans the newest image published for `main` against the day's vulnerability database, and
+  fails on a fixable high or critical finding. That catches what the build could not see:
+  vulnerabilities published after it.
+
+A failed scheduled run sends a notification, so staleness and newly published CVEs both surface
+without anyone having to look.
