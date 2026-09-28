@@ -18,3 +18,15 @@ variable "state_bucket_name" {
   description = "Globally unique name for the state bucket. Set it in terraform.tfvars."
   type        = string
 }
+
+variable "github_repository" {
+  description = "owner/name of the repository allowed to assume the CI role."
+  type        = string
+  default     = "Olivg92/platform-eks-gitops"
+}
+
+variable "enable_github_oidc" {
+  description = "Create the GitHub OIDC provider and the CI plan role. Off by default: accounts from the new AWS sign-up experience deny it (docs/adr/0012)."
+  type        = bool
+  default     = false
+}

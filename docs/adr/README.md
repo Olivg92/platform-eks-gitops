@@ -16,3 +16,4 @@ New ADRs start from [the template](0000-template.md) and are never rewritten onc
 | [0009](0009-public-subnets-without-a-nat-gateway.md) | Run the nodes in public subnets, without a NAT Gateway | Accepted |
 | [0010](0010-pod-identity-for-workload-credentials.md) | Give workloads AWS credentials with EKS Pod Identity | Accepted |
 | [0011](0011-runtime-image-with-no-known-vulnerabilities.md) | Ship the demo API on an image with no known vulnerabilities | Accepted |
+| [0012](0012-ci-reaches-aws-through-oidc.md) | CI reaches AWS through OIDC or not at all | Accepted, off on the demo account |

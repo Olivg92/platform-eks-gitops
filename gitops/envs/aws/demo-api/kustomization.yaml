@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: demo
+resources:
+  - ../../../apps/demo-api/base
+
+images:
+  # Published by CI on every merge to main, tagged with the commit it was built
+  # from. Deploying a new version is a commit changing this tag: git stays the
+  # record of what runs, and the tag never moves under a running pod.
+  - name: demo-api
+    newName: ghcr.io/olivg92/demo-api
+    newTag: sha-a23768a458ceef8f6c3afa19b595e79e5d6b4de5

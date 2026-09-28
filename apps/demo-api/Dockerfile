@@ -4,9 +4,13 @@
 #
 # Both stages are pinned by digest to the same day's build. Chainguard's free
 # tier only publishes `latest`, so the tag alone would move the Python version
-# underneath us; the digest makes every move a Dependabot pull request, tested
-# by CI, and keeps the build and runtime interpreters on the same version, which
+# underneath us; the digest makes every move a deliberate change, tested by CI,
+# and keeps the build and runtime interpreters on the same version, which
 # compiled dependencies (pydantic-core, uvloop) require.
+#
+# Dependabot is configured to propose digest bumps, but its support for this
+# registry's `latest` tags has been seen to stop silently. Do not rely on it
+# alone to keep this image fresh: see the update at the end of docs/adr/0011.
 
 FROM cgr.dev/chainguard/python:latest-dev@sha256:eb0d45dfc69fecb471d2eaee7a8eea281bf860578ef44cb85db1bfa8165c47fe AS build
 USER root

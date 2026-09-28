@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: demo
 resources:
   - ../../../apps/demo-api/base
-  - httproute.yaml
 
 images:
   # Built locally and imported into k3d by `make demo-image`. The AWS overlay

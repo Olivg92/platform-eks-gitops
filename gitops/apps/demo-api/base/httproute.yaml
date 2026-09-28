@@ -1,4 +1,5 @@
-# Attaches the application to the shared gateway, on its own hostname.
+# Attaches the application to the shared gateway, on its own hostname. The same
+# in both environments: what sits in front of the gateway is what differs.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

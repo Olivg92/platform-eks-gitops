@@ -82,11 +82,11 @@ platform-eks-gitops/
 - [x] Vérifier après `make down` qu'il ne reste rien (LB, EIP, volumes EBS) : `scripts/aws-down.sh` le contrôle et sort en erreur sinon
 
 ### 1.5 CI GitHub Actions
-- [ ] Terraform : `fmt -check`, `validate`, `tflint`, `checkov`
-- [ ] Kubernetes : `kubeconform`, `helm lint`, `kustomize build`
-- [ ] Build + scan (Trivy) + push de l'image de démo sur GHCR
-- [ ] Authentification AWS par **OIDC GitHub → rôle IAM**, zéro clé statique
-- [ ] `pre-commit` en local avec les mêmes checks
+- [x] Terraform : `fmt -check`, `validate`, `tflint`, `checkov` (via les hooks pre-commit, rejoués en CI)
+- [x] Kubernetes : `kubeconform` et rendu de chaque surcouche kustomize (pas de chart local, donc pas de `helm lint`)
+- [x] Build + test de fumée + scan (Trivy) + push de l'image sur GHCR ; 0 vulnérabilité sur base Chainguard
+- [x] Authentification AWS par **OIDC GitHub → rôle IAM**, zéro clé statique ; `terraform plan` commenté sur les PR. Codé mais désactivé sur ce compte : la SCP gérée par AWS interdit les fournisseurs OIDC, et aucune clé statique ne prend le relais (ADR 0012)
+- [x] `pre-commit` en local avec les mêmes checks
 
 ### 1.6 Documentation (autant de valeur que le code)
 - [ ] README : problème, architecture (Mermaid), quickstart local en 3 commandes, choix techniques, coût réel d'une démo
