@@ -1,6 +1,6 @@
-# 0012. CI reaches AWS through OIDC, with a read-only role
+# 0012. CI reaches AWS through OIDC or not at all
 
-- **Status**: Accepted
+- **Status**: Accepted. Off on the demo account, see below.
 - **Date**: 2026-09-26
 
 ## Context
@@ -32,11 +32,39 @@ does this change, without any permission on EC2, IAM or Secrets Manager.
 Data sources are still read during a plan, refresh or not, and the eks module has one: the addon
 version catalog, a public list with no account data behind it. The permissions above are the
 complete set, taken from a debug log of a real plan rather than guessed: without the EKS lookup
-the plan works while the environment is down and fails as soon as it is up. It also runs with `-lock=false`, since the role
-cannot write the lock file and a plan changes nothing a lock would protect.
+the plan works while the environment is down and fails as soon as it is up. It also runs with
+`-lock=false`, since the role cannot write the lock file and a plan changes nothing a lock would
+protect.
 
 The provider and the role live in the bootstrap stack, next to the state bucket, because the demo
 environment is destroyed every session and CI must keep working when it is.
+
+## This account cannot trust GitHub
+
+The first apply of the provider was refused: `iam:CreateOpenIDConnectProvider`, explicit deny in a
+service control policy. The account was created through the new AWS sign-up experience, whose
+AWS-managed SCP denies `iam:*Provider*` on the Free and the Paid plan alike
+([Service control policies for projects](https://docs.aws.amazon.com/accounts/latest/reference/scps-and-rcps-for-projects.html)).
+The only way to lift it is to activate advanced features, which cannot be undone and removes the
+spend limit that caps what this demo can cost.
+
+A plan comment is worth neither. So:
+
+- the provider and the role stay in the code, behind `enable_github_oidc`, off by default. On a
+  standard account, that one variable turns them on;
+- the workflow runs only once the repository variable `TF_STATE_BUCKET` is set, and is skipped
+  otherwise, so nothing fails;
+- there is no fallback to an access key. CI reaches AWS through OIDC or not at all.
+
+The loss is smaller than it sounds. The plan compares the code with the last applied state, and
+this environment is destroyed at the end of every session: most of the time the state is empty,
+and the comment would announce the whole environment as new, whatever the pull request changes.
+Every Terraform change is still formatted, validated, linted and scanned by the `ci` workflow, and
+a plan can still be run locally at any time.
+
+The same SCP would have blocked IRSA, which needs an IAM OIDC provider for the cluster. EKS Pod
+Identity, chosen in [ADR 0010](0010-pod-identity-for-workload-credentials.md), turns out to be the
+only one of the two that works on this account.
 
 ## Consequences
 
@@ -48,9 +76,9 @@ environment is destroyed every session and CI must keep working when it is.
   password is an ephemeral value, sent to Secrets Manager through a write-only argument and never
   stored. The trust policy stays narrow all the same, since the state still maps the whole
   environment.
-- The account id appears in role ARNs and in plan output. The role ARN is stored as a secret so
-  GitHub masks it in public logs, and the account id is redacted from the comment before it is
-  posted.
+- Where the plan is on, the account id appears in role ARNs and in plan output. The role ARN is
+  stored as a secret so GitHub masks it in public logs, and the account id is redacted from the
+  comment before it is posted.
 - The plan job skips pull requests from forks, which receive neither secrets nor an identity
   token, and runs started by Dependabot, which have no access to Actions secrets and so no role to
   assume. Their Terraform changes are still linted, validated and scanned by the `ci` workflow.

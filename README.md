@@ -166,14 +166,16 @@ nobody can reproduce before pushing.
 | demo-api tests | The pytest suite, including the test that pins the metric labels the SLOs depend on |
 | manifests render | Every kustomization under `gitops/` rendered and validated, 14 today. The environment roots only list Argo CD Applications; the patches that can break live one level down, so each one is rendered |
 | demo-api image | Built and scanned with Trivy when the application changes. Findings go to the Security tab; a fixable critical one fails the build. Published to GHCR on `main` only, tagged with the commit sha |
-| terraform plan | On pull requests touching the infrastructure, the plan of `envs/demo`, posted as a comment on the pull request |
+| terraform plan | Off on the demo account, see below. Where it is on: the plan of `envs/demo` on pull requests touching the infrastructure, posted as a comment |
 
 `scripts/render-manifests.sh` is the same render check, runnable locally.
 
-The plan authenticates to AWS with OIDC: no access key exists anywhere in GitHub. The role it
-assumes can read the Terraform state and list EKS addon versions, nothing else, and only pull
-requests of this repository can assume it ([ADR 0012](docs/adr/0012-ci-reaches-aws-through-oidc.md)). It needs three settings
-in the repository, under Settings, Secrets and variables, Actions:
+The plan authenticates to AWS with OIDC only: no access key exists anywhere in GitHub. The role
+it assumes can read the Terraform state and list EKS addon versions, nothing else, and only pull
+requests of this repository can assume it. It is **off on the account this demo runs on**, whose
+AWS-managed policies forbid OIDC providers; [ADR 0012](docs/adr/0012-ci-reaches-aws-through-oidc.md)
+explains why no access key takes its place. On a standard account, apply `terraform/bootstrap` with
+`enable_github_oidc = true`, then add, under Settings, Secrets and variables, Actions:
 
 | Name | Kind | Value |
 |---|---|---|

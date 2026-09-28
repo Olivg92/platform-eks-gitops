@@ -85,7 +85,7 @@ platform-eks-gitops/
 - [x] Terraform : `fmt -check`, `validate`, `tflint`, `checkov` (via les hooks pre-commit, rejoués en CI)
 - [x] Kubernetes : `kubeconform` et rendu de chaque surcouche kustomize (pas de chart local, donc pas de `helm lint`)
 - [x] Build + test de fumée + scan (Trivy) + push de l'image sur GHCR ; 0 vulnérabilité sur base Chainguard
-- [x] Authentification AWS par **OIDC GitHub → rôle IAM**, zéro clé statique ; `terraform plan` commenté sur les PR (ADR 0012)
+- [x] Authentification AWS par **OIDC GitHub → rôle IAM**, zéro clé statique ; `terraform plan` commenté sur les PR. Codé mais désactivé sur ce compte : la SCP gérée par AWS interdit les fournisseurs OIDC, et aucune clé statique ne prend le relais (ADR 0012)
 - [x] `pre-commit` en local avec les mêmes checks
 
 ### 1.6 Documentation (autant de valeur que le code)
