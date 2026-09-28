@@ -7,19 +7,28 @@
 #
 # Kept in the bootstrap stack rather than the demo environment: the demo is
 # destroyed every session, and CI must keep working when it is.
+#
+# Off by default. The account this demo runs on was created through the new AWS
+# sign-up experience, whose managed SCP denies iam:*Provider*: no OIDC provider
+# can exist there, and the only way out cannot be undone and drops the spend
+# limit. On a standard account, set enable_github_oidc = true (docs/adr/0012).
 
 resource "aws_iam_openid_connect_provider" "github" {
+  count = var.enable_github_oidc ? 1 : 0
+
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
 }
 
 data "aws_iam_policy_document" "ci_plan_trust" {
+  count = var.enable_github_oidc ? 1 : 0
+
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [aws_iam_openid_connect_provider.github[0].arn]
     }
 
     condition {
@@ -40,9 +49,11 @@ data "aws_iam_policy_document" "ci_plan_trust" {
 }
 
 resource "aws_iam_role" "ci_plan" {
+  count = var.enable_github_oidc ? 1 : 0
+
   name                 = "platform-eks-gitops-ci-plan"
   description          = "Assumed by GitHub Actions on pull requests to run terraform plan"
-  assume_role_policy   = data.aws_iam_policy_document.ci_plan_trust.json
+  assume_role_policy   = data.aws_iam_policy_document.ci_plan_trust[0].json
   max_session_duration = 3600
 }
 
@@ -55,6 +66,8 @@ resource "aws_iam_role" "ci_plan" {
 # version catalog. The calls below are the complete list, taken from a debug log
 # of a real plan, not guessed.
 data "aws_iam_policy_document" "ci_plan" {
+  count = var.enable_github_oidc ? 1 : 0
+
   statement {
     sid       = "ListStateBucket"
     actions   = ["s3:ListBucket"]
@@ -79,7 +92,9 @@ data "aws_iam_policy_document" "ci_plan" {
 }
 
 resource "aws_iam_role_policy" "ci_plan" {
+  count = var.enable_github_oidc ? 1 : 0
+
   name   = "read-terraform-state"
-  role   = aws_iam_role.ci_plan.id
-  policy = data.aws_iam_policy_document.ci_plan.json
+  role   = aws_iam_role.ci_plan[0].id
+  policy = data.aws_iam_policy_document.ci_plan[0].json
 }

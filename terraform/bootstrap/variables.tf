@@ -24,3 +24,9 @@ variable "github_repository" {
   type        = string
   default     = "Olivg92/platform-eks-gitops"
 }
+
+variable "enable_github_oidc" {
+  description = "Create the GitHub OIDC provider and the CI plan role. Off by default: accounts from the new AWS sign-up experience deny it (docs/adr/0012)."
+  type        = bool
+  default     = false
+}
