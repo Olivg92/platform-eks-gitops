@@ -1,0 +1,78 @@
+name: image freshness
+
+# The demo-api image is pinned by digest (docs/adr/0011): nothing changes unless
+# a pull request says so. The price is that a pinned image never gets worse, it
+# only stops getting better, and nothing turns red. This workflow is what turns
+# it red, once a week, without anyone having to remember to look.
+#
+# A failed scheduled run is emailed to whoever last changed the schedule. In a
+# public repository, GitHub also disables scheduled workflows after 60 days
+# without activity; the Actions tab turns it back on.
+on:
+  schedule:
+    # Mondays, off the hour: runs queued on the hour are the ones GitHub delays.
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/image-freshness.yml
+      - scripts/check-base-age.sh
+
+permissions:
+  contents: read
+
+jobs:
+  base-age:
+    name: pinned base images are recent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Chainguard rebuilds daily and Dependabot proposes the bump weekly: a pin
+      # older than two weeks means Dependabot missed at least one.
+      - name: Check the build date of each pinned base image
+        run: scripts/check-base-age.sh apps/demo-api/Dockerfile 14
+
+  published-scan:
+    name: published image, rescanned today
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Name the image
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/demo-api:latest" >> "$GITHUB_ENV"
+
+      # The build scanned this image against the vulnerability database of the
+      # day it was built, and vulnerabilities keep being published after that.
+      # The newest image from main, scanned again today, shows whether main
+      # still ships clean.
+      - name: Scan the image published for main
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          exit-code: "0"
+
+      # A pull request only tests this workflow. Its code scanning results should
+      # describe its own changes, not an image that was published before it.
+      - name: Publish the report to the Security tab
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@416ff0dea110f80f0f56f0046500dbf7420e4bb0 # v4.32.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-demo-api-published
+
+      # Stricter than the build, which stops on critical findings only: a fix
+      # published since the build means a rebuild or a bump is due.
+      - name: Fail on fixable high or critical findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
