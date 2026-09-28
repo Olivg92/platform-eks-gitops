@@ -78,7 +78,8 @@ The failure mode matters more than the cause: an image pinned by digest does not
 simply stops getting better, and nothing turns red. "Zero known vulnerabilities" would decay into
 the same list distroless started with, silently.
 
-Dependabot stays configured, with both stages grouped so that a bump, when it comes, moves them
-together. It is no longer the only safeguard: a scheduled workflow, planned as the next change,
-checks the pinned digests against the published ones and scans the image already in the registry,
-so that staleness and newly published CVEs both surface without anyone having to look.
+Dependabot stays configured. Both stages use the same image, one dependency to Dependabot, so a
+bump moves them together in a single pull request, as #17 did. It is no longer the only
+safeguard: a scheduled workflow, planned as the next change, checks the pinned digests against the
+published ones and scans the image already in the registry, so that staleness and newly published
+CVEs both surface without anyone having to look.
