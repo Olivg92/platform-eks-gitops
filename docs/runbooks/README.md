@@ -32,3 +32,24 @@ make down
 
 The last lines of `make down` list what is still running. It exits non-zero when anything remains,
 because a load balancer that outlives its cluster keeps billing quietly.
+
+### When the AWS session expires during the teardown
+
+An `aws login` session lasts 12 hours, and Terraform cannot renew one that ends mid-run. The
+destroy then stops with `ExpiredToken`, and three things are left behind: the resources not yet
+deleted, which keep billing; the state Terraform could not upload, written to
+`terraform/envs/demo/errored.tfstate`; and its lock, still in the state bucket. Nothing is lost, and
+what was already deleted stays deleted.
+
+```bash
+aws login --profile perso                  # a new session
+cd terraform/envs/demo
+terraform force-unlock <lock-id>           # the id is printed by any terraform command that hits the lock
+terraform state push errored.tfstate       # the newer state, which knows what is already gone
+cd - && make down                          # finishes the job, then checks nothing is left
+```
+
+Check the lock's creation time against the interrupted run before removing it: unlocking a run
+that is still alive lets two processes write the same state. The session end is enforced by AWS
+and not visible locally, so the safe habit is a fresh `aws login` before a `make up` or `make down`
+on a session that is already hours old.
