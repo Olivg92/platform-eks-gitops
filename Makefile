@@ -202,9 +202,21 @@ aws-preflight: aws-profile
 			echo "$(TF_DEMO)/$$f is missing: copy $$f.example and fill it in, see the README"; exit 1; }; \
 	done
 
+# An `aws login` session ends twelve hours after the login. The long operations
+# refuse to start on one that might not last, rather than stop halfway with a
+# cluster still billing (docs/runbooks).
+.PHONY: aws-login
+aws-login: aws-profile ## Open an AWS session with `aws login`, and note when it started
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/aws-session.sh login
+
+.PHONY: aws-session
+aws-session: aws-profile
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/aws-session.sh check 10
+
 .PHONY: up
-up: aws-preflight ## Create the EKS demo environment (about $0.18/hour, always finish with make down)
+up: aws-preflight aws-session ## Create the EKS demo environment (about $0.18/hour, always finish with make down)
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/tf-recover.sh $(TF_DEMO)
 	@echo "restricting the Kubernetes API to $(MY_IP)/32"
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) apply -input=false $(TF_API_CIDR)
 	@# The profile has to cover the `terraform output` too: a bare prefix applies
@@ -262,7 +274,9 @@ plan: aws-preflight ## Show what `make up` would create, without creating it
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) plan -input=false $(TF_API_CIDR)
 
 .PHONY: down
-down: aws-preflight ## Destroy the EKS demo environment and check nothing is left billing
+down: aws-preflight aws-session ## Destroy the EKS demo environment and check nothing is left billing
+	@AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false >/dev/null
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/tf-recover.sh $(TF_DEMO)
 	@AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) TF_DIR=$(TF_DEMO) scripts/aws-down.sh
 
 .PHONY: cost

@@ -49,7 +49,17 @@ else
 fi
 
 echo "destroying the Terraform stack (the refresh alone takes a couple of minutes)..."
-AWS_PROFILE="$PROFILE" terraform -chdir="$TF_DIR" destroy -input=false
+if ! AWS_PROFILE="$PROFILE" terraform -chdir="$TF_DIR" destroy -input=false; then
+  echo
+  if ! aws sts get-caller-identity --profile "$PROFILE" >/dev/null 2>&1; then
+    # The checks below would all answer "?": say what happened instead.
+    echo "the AWS session ended during the destroy, so part of the environment is still there," >&2
+    echo "and still billing. Open a new session, then run this again: it picks up where it stopped." >&2
+    echo "  make aws-login && make down" >&2
+    exit 1
+  fi
+  echo "terraform destroy failed, see above. What is still running:" >&2
+fi
 
 echo
 echo "checking nothing is left behind:"
