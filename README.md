@@ -182,8 +182,13 @@ has finished.
    ```bash
    echo 'AWS_PROFILE := my-profile' >> local.mk
    export AWS_PROFILE=my-profile
+   make aws-login                                              # only for profiles that use `aws login`
    aws sts get-caller-identity --query Account --output text   # the account id, asked for below
    ```
+
+   An `aws login` session ends twelve hours after the login. `make aws-login` notes when it
+   started, and `make up` and `make down` refuse to begin on one that might not last: a teardown
+   cut halfway leaves a cluster billing.
 
 2. **Create the state bucket**, once per account. [`terraform/bootstrap`](terraform/bootstrap/)
    says what it creates and why:
