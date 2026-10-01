@@ -28,9 +28,11 @@ This is the only stack that is not destroyed at the end of a session.
 ## Run it
 
 ```bash
-cp terraform.tfvars.example terraform.tfvars   # fill in the account id and a unique bucket name
-AWS_PROFILE=perso terraform init
-AWS_PROFILE=perso terraform apply
+export AWS_PROFILE=my-profile                  # the profile of the account to use
+cp terraform.tfvars.example terraform.tfvars   # the account id, and a bucket name unique in the world
+terraform init
+terraform apply
 ```
 
-The bucket name it prints goes into `terraform/envs/demo/backend.hcl`, which is also not committed.
+`aws sts get-caller-identity --query Account --output text` prints the account id. The bucket name
+this stack outputs goes into `terraform/envs/demo/backend.hcl`, which is not committed either.

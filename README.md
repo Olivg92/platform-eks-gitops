@@ -41,9 +41,17 @@ No AWS account needed, and nothing to pay: everything runs in Docker.
 
 ```bash
 git clone https://github.com/Olivg92/platform-eks-gitops.git && cd platform-eks-gitops
-make check-tools   # docker, k3d, kubectl, helm, ...
+make check-tools   # what is installed, and what each tool is for
 make local-up      # k3d cluster + Argo CD + platform components
 ```
+
+| Tool | Needed for | Tested with |
+|---|---|---|
+| Docker, with 8 GB of memory to spare | the local platform | 29.1 |
+| k3d, kubectl, Helm | the local platform; kubectl and Helm on AWS too | 5.9, 1.37, 4.3 |
+| python3, curl | the scripts behind `make` | 3.10, 7.81 |
+| Terraform 1.11 or later, AWS CLI v2 | AWS only | 1.16, 2.36 |
+| pre-commit, tflint, checkov, kubeconform | contributing only | 4.6, 0.64, 3.3, 0.8 |
 
 Measured from a fresh clone: **4 minutes 33 seconds** until `make local-verify` is all green, with
 every platform image downloaded from scratch. The cluster then uses about 5.5 GB of memory: plan
@@ -161,10 +169,45 @@ percentile.
 
 ## Running it on AWS
 
-This part costs money: about $0.18 an hour, while the cluster exists.
+This part costs money: about $0.18 an hour while the cluster exists, and nothing once `make down`
+has finished.
 
-Once per account: apply [`terraform/bootstrap`](terraform/bootstrap/) for the state bucket, then
-copy `backend.hcl.example` and `terraform.tfvars.example` in `terraform/envs/demo/`. After that:
+### First time
+
+1. **Choose the AWS profile.** Any AWS CLI profile allowed to create a VPC, an EKS cluster and IAM
+   roles in the account. The Makefile has no default, on purpose: on a machine that knows several
+   accounts, the wrong default is one keystroke away. Keep it in `local.mk`, which is not committed,
+   and export it for the Terraform commands of the next step:
+
+   ```bash
+   echo 'AWS_PROFILE := my-profile' >> local.mk
+   export AWS_PROFILE=my-profile
+   aws sts get-caller-identity --query Account --output text   # the account id, asked for below
+   ```
+
+2. **Create the state bucket**, once per account. [`terraform/bootstrap`](terraform/bootstrap/)
+   says what it creates and why:
+
+   ```bash
+   cd terraform/bootstrap
+   cp terraform.tfvars.example terraform.tfvars   # the account id, and a bucket name unique in the world
+   terraform init && terraform apply
+   cd ../..
+   ```
+
+3. **Point the demo environment at it:**
+
+   ```bash
+   cd terraform/envs/demo
+   cp backend.hcl.example backend.hcl             # the bucket name from step 2
+   cp terraform.tfvars.example terraform.tfvars   # the account id
+   cd ../..
+   ```
+
+Everything defaults to `eu-north-1`. [`terraform/envs/demo`](terraform/envs/demo/) lists what the
+environment creates, and what to change for another region.
+
+### Every session
 
 ```bash
 make plan         # what would be created, without creating it
@@ -175,7 +218,8 @@ make down         # destroy everything, then fail if anything is still billing
 
 Measured on the last session: `make up` takes about 18 minutes, 11 of them in Terraform, most of
 which is the EKS control plane, and 7 for Argo CD to install the platform. `make down` takes 10 to
-15 minutes, most of it EKS deleting the node group and then the cluster. In between, the same checks as locally, plus what only exists on AWS:
+15 minutes, most of it EKS deleting the node group and then the cluster. In between, the same
+checks as locally, plus what only exists on AWS:
 
 ```text
 $ make aws-verify

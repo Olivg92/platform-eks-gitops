@@ -42,7 +42,7 @@ deleted, which keep billing; the state Terraform could not upload, written to
 what was already deleted stays deleted.
 
 ```bash
-aws login --profile perso                  # a new session
+aws login --profile "$AWS_PROFILE"         # a new session
 cd terraform/envs/demo
 terraform force-unlock <lock-id>           # the id is printed by any terraform command that hits the lock
 terraform state push errored.tfstate       # the newer state, which knows what is already gone
