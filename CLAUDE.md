@@ -1,7 +1,7 @@
 # Contexte projet
 
 Ce repo fait partie de mon portfolio public DevOps / SRE / Platform Engineer, destiné à des recruteurs.
-Le plan complet et l'avancement sont dans @PLAN.md (fichier local, non versionné) : le lire avant toute tâche et cocher les cases terminées.
+Le plan complet et l'avancement sont dans @../PLAN.md (fichier local, hors du repo, commun aux trois projets) : le lire avant toute tâche et cocher les cases terminées.
 
 ## Mon profil
 - Ingénieur DevOps/SRE, expérience principale : infra Linux on-prem à grande échelle, astreinte
