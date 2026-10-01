@@ -16,7 +16,10 @@ TF_DIR="${TF_DIR:-terraform/envs/demo}"
 # cluster without saying who may reach it. Destroying does not care about the
 # value, so give it an inert one rather than leaving the teardown blocked.
 export TF_VAR_api_public_access_cidrs='["127.0.0.1/32"]'
-PROFILE="${AWS_PROFILE:-perso}"
+# No default profile, for the same reason as in the Makefile: tearing down the
+# wrong account is not a mistake a default should make possible.
+: "${AWS_PROFILE:?set AWS_PROFILE, or run this through make}"
+PROFILE="$AWS_PROFILE"
 REGION="${AWS_REGION:-eu-north-1}"
 
 cluster=$(terraform -chdir="$TF_DIR" output -raw cluster_name 2>/dev/null || true)

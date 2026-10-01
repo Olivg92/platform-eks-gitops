@@ -33,6 +33,9 @@ kubeconfig
 *.swp
 .DS_Store
 
+# Personal Makefile settings (AWS_PROFILE and the like)
+local.mk
+
 # Local-only AI assistant instructions. The personal roadmap lives outside the
 # repository; its entry only keeps a stray copy from being committed.
 CLAUDE.local.md

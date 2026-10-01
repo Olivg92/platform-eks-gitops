@@ -9,8 +9,8 @@ output "region" {
 }
 
 output "kubeconfig_command" {
-  description = "Command that points kubectl at this cluster."
-  value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region} --profile perso"
+  description = "Writes this cluster's credentials to its own kubeconfig file. `make up` runs it."
+  value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region} --kubeconfig ~/.kube/platform-eks-gitops-aws"
 }
 
 output "secret_names" {
