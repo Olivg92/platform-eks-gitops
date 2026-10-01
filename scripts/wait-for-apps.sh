@@ -17,6 +17,7 @@ NS="${1:-argocd}"
 TIMEOUT="${2:-600}"
 INTERVAL=10
 stable=0
+last=""
 deadline=$(( SECONDS + TIMEOUT ))
 
 summarize() {
@@ -50,7 +51,12 @@ while (( SECONDS < deadline )); do
     fi
   else
     stable=0
-    echo "  $ready/$watched ready: $pending"
+    # Say it once per change, not every ten seconds.
+    line="  $ready/$watched ready: $pending"
+    if [ "$line" != "$last" ]; then
+      echo "$line"
+      last="$line"
+    fi
   fi
   sleep "$INTERVAL"
 done
