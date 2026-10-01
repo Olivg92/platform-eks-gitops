@@ -33,7 +33,8 @@ kubeconfig
 *.swp
 .DS_Store
 
-# Local-only AI assistant instructions, and the personal roadmap they follow
+# Local-only AI assistant instructions. The personal roadmap lives outside the
+# repository; its entry only keeps a stray copy from being committed.
 CLAUDE.local.md
 PLAN.md
 
