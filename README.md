@@ -26,33 +26,7 @@ notice. It runs locally on k3d for free, and on EKS for about $0.18 an hour.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    subgraph git[Git and CI]
-        dev([Developer]) -->|pull request| gh[GitHub]
-        gh -->|lint, test,<br/>build, scan| ghcr[(GHCR<br/>demo-api image)]
-    end
-
-    subgraph cluster[Kubernetes: k3d locally, EKS on AWS]
-        argocd[Argo CD<br/>one root Application]
-        subgraph platform[Platform]
-            gw[Envoy Gateway<br/>Gateway API]
-            cm[cert-manager]
-            eso[External Secrets]
-            mon[Prometheus, Alertmanager,<br/>Grafana, Sloth]
-        end
-        app[demo-api]
-    end
-
-    gh -->|watched| argocd
-    argocd -->|syncs, in waves| platform
-    argocd -->|syncs| app
-    ghcr -.->|on AWS, by commit sha| app
-    gw -->|HTTPRoute| app
-    cm -.->|certificate| gw
-    mon -->|scrapes, SLO alerts| app
-    eso -->|reads| store[(Vault locally,<br/>Secrets Manager on AWS)]
-```
+![Architecture: Git and CI on the left, the Kubernetes platform synced by Argo CD in the middle, the secret stores and users on the right](docs/images/architecture-overview.excalidraw.svg)
 
 The same manifests run in both places: a shared base, and an overlay per environment for what
 differs (secret store, load balancer, image). On AWS, Terraform creates what the cluster runs on: a
