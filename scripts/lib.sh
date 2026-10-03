@@ -112,6 +112,12 @@ tf_progress() {
   echo "${finished:-0} of $TF_TOTAL resources"
 }
 
+# How far Argo CD is, from the last line scripts/wait-for-apps.sh printed.
+apps_progress() {
+  grep -oE '[0-9]+/[0-9]+ ready|all [0-9]+ applications' "$LOG" | tail -n 1 |
+    sed -E 's|all ([0-9]+) applications|\1/\1 ready|'
+}
+
 # Asks for the one word that commits to the operation. Anything else cancels,
 # an absent answer included, so a script cannot approve by accident.
 confirm() { # question

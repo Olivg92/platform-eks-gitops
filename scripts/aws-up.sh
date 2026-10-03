@@ -58,10 +58,6 @@ write_kubeconfig() {
   cluster=$(terraform -chdir="$TF_DIR" output -raw cluster_name)
   aws eks update-kubeconfig --region "$REGION" --name "$cluster" --kubeconfig "$KUBECONFIG"
 }
-apps_progress() {
-  grep -oE '[0-9]+/[0-9]+ ready|all [0-9]+ applications' "$LOG" | tail -n 1 |
-    sed -E 's|all ([0-9]+) applications|\1/\1 ready|'
-}
 
 step "Credentials for the new cluster" write_kubeconfig
 step "Argo CD" "$MAKE" --no-print-directory aws-argocd

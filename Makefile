@@ -37,7 +37,8 @@ lint: ## Run all linters and security checks
 ## ---- Local (k3d, free) ----
 
 .PHONY: local-up
-local-up: local-cluster demo-image local-argocd local-bootstrap local-wait local-info ## Create the k3d cluster and bootstrap the whole platform
+local-up: ## Create the k3d cluster and bootstrap the whole platform
+	@scripts/local-up.sh
 
 .PHONY: local-cluster
 local-cluster: ## Create the k3d cluster (no-op if it already exists)
@@ -171,7 +172,11 @@ grafana-reload: ## Restart Grafana so it picks up a regenerated admin password
 
 .PHONY: local-down
 local-down: ## Delete the k3d cluster
-	k3d cluster delete $(CLUSTER_NAME)
+	@if k3d cluster list $(CLUSTER_NAME) >/dev/null 2>&1; then \
+		k3d cluster delete $(CLUSTER_NAME) >/dev/null 2>&1 && echo "deleted the k3d cluster $(CLUSTER_NAME)"; \
+	else \
+		echo "no k3d cluster named $(CLUSTER_NAME), nothing to delete"; \
+	fi
 	@rm -f $(LOCAL_KUBECONFIG)
 
 ## ---- AWS (EKS, costs money: always finish with `make down`) ----
