@@ -1,5 +1,10 @@
 # Copy to terraform.tfvars and fill in. terraform.tfvars is not committed:
 # the account id is not a secret, but it does not belong in a public repository.
-account_id        = "123456789012"
-# Narrow this to your own address to keep the Kubernetes API private to you:
-# api_public_access_cidrs = ["203.0.113.4/32"]
+account_id = "123456789012"
+
+# The Kubernetes API is restricted to the machine that runs `make up`, which
+# passes its public address itself: nothing to set here for that.
+
+# Another region: set both, and AWS_REGION in local.mk (see README.md here).
+# region             = "eu-west-3"
+# availability_zones = ["eu-west-3a", "eu-west-3b"]

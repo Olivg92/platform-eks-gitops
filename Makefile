@@ -1,7 +1,8 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-REQUIRED_TOOLS := docker k3d kubectl helm terraform aws pre-commit kubeconform
+# Personal settings, such as AWS_PROFILE, go in local.mk, which is not committed.
+-include local.mk
 
 CLUSTER_NAME   := platform-local
 ARGOCD_CHART   := 10.9.2
@@ -26,10 +27,8 @@ help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: check-tools
-check-tools: ## Verify required CLI tools are installed
-	@missing=0; for t in $(REQUIRED_TOOLS); do \
-		command -v $$t >/dev/null || { echo "missing: $$t"; missing=1; }; \
-	done; [ $$missing -eq 0 ] && echo "all tools found"
+check-tools: ## Check the tools the local platform needs (GROUP=aws, dev or all to require more)
+	@scripts/check-tools.sh $(or $(GROUP),local)
 
 .PHONY: lint
 lint: ## Run all linters and security checks
@@ -177,7 +176,9 @@ local-down: ## Delete the k3d cluster
 
 ## ---- AWS (EKS, costs money: always finish with `make down`) ----
 
-AWS_PROFILE ?= perso
+# No default profile, on purpose: on a machine that knows several AWS accounts,
+# the wrong default is one keystroke away. Export it, or set it in local.mk.
+AWS_PROFILE ?=
 AWS_REGION  ?= eu-north-1
 TF_DEMO     := terraform/envs/demo
 # The Kubernetes API is reachable from this machine only. Override with
@@ -185,9 +186,37 @@ TF_DEMO     := terraform/envs/demo
 MY_IP       ?= $(shell curl -fsS --max-time 5 https://checkip.amazonaws.com || echo detection-failed)
 TF_API_CIDR := -var=api_public_access_cidrs=["\"$(MY_IP)/32\""]
 
+# What every AWS target needs before it touches anything: a profile chosen on
+# purpose, the tools, and the two files the README asks to create once.
+.PHONY: aws-profile
+aws-profile:
+	@[ -n "$(AWS_PROFILE)" ] || { \
+		echo "AWS_PROFILE is not set. Export it, or keep it in local.mk:"; \
+		echo "  echo 'AWS_PROFILE := <your profile>' >> local.mk"; exit 1; }
+
+.PHONY: aws-preflight
+aws-preflight: aws-profile
+	@QUIET=1 scripts/check-tools.sh aws
+	@for f in backend.hcl terraform.tfvars; do \
+		[ -f $(TF_DEMO)/$$f ] || { \
+			echo "$(TF_DEMO)/$$f is missing: copy $$f.example and fill it in, see the README"; exit 1; }; \
+	done
+
+# An `aws login` session ends twelve hours after the login. The long operations
+# refuse to start on one that might not last, rather than stop halfway with a
+# cluster still billing (docs/runbooks).
+.PHONY: aws-login
+aws-login: aws-profile ## Open an AWS session with `aws login`, and note when it started
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/aws-session.sh login
+
+.PHONY: aws-session
+aws-session: aws-profile
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/aws-session.sh check 10
+
 .PHONY: up
-up: ## Create the EKS demo environment (about $0.18/hour, always finish with make down)
+up: aws-preflight aws-session ## Create the EKS demo environment (about $0.18/hour, always finish with make down)
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/tf-recover.sh $(TF_DEMO)
 	@echo "restricting the Kubernetes API to $(MY_IP)/32"
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) apply -input=false $(TF_API_CIDR)
 	@# The profile has to cover the `terraform output` too: a bare prefix applies
@@ -240,16 +269,18 @@ aws-gateway-url: ## Print the load balancer address of the gateway
 		-o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}{"\n"}'
 
 .PHONY: plan
-plan: ## Show what `make up` would create, without creating it
+plan: aws-preflight ## Show what `make up` would create, without creating it
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) plan -input=false $(TF_API_CIDR)
 
 .PHONY: down
-down: ## Destroy the EKS demo environment and check nothing is left billing
+down: aws-preflight aws-session ## Destroy the EKS demo environment and check nothing is left billing
+	@AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false >/dev/null
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/tf-recover.sh $(TF_DEMO)
 	@AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) TF_DIR=$(TF_DEMO) scripts/aws-down.sh
 
 .PHONY: cost
-cost: ## Show this month's AWS spend, credits excluded (one Cost Explorer call, billed $0.01)
+cost: aws-profile ## Show this month's AWS spend, credits excluded (one Cost Explorer call, billed $0.01)
 	@# Credits are subtracted by default, which reports roughly zero while free
 	@# credits last and hides what the environment actually consumes. Excluding
 	@# them answers the question worth asking: what would this cost for real?
@@ -260,7 +291,7 @@ cost: ## Show this month's AWS spend, credits excluded (one Cost Explorer call, 
 		--query 'ResultsByTime[0].Total.UnblendedCost.[Amount,Unit]' --output text
 
 .PHONY: cost-by-service
-cost-by-service: ## Break this month's spend down by service (one Cost Explorer call, billed $0.01)
+cost-by-service: aws-profile ## Break this month's spend down by service (one Cost Explorer call, billed $0.01)
 	@AWS_PROFILE=$(AWS_PROFILE) aws ce get-cost-and-usage \
 		--time-period Start=$$(date -u +%Y-%m-01),End=$$(date -u -d tomorrow +%Y-%m-%d) \
 		--granularity MONTHLY --metrics UnblendedCost \

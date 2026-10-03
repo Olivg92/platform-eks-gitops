@@ -42,14 +42,23 @@ deleted, which keep billing; the state Terraform could not upload, written to
 what was already deleted stays deleted.
 
 ```bash
-aws login --profile perso                  # a new session
-cd terraform/envs/demo
-terraform force-unlock <lock-id>           # the id is printed by any terraform command that hits the lock
-terraform state push errored.tfstate       # the newer state, which knows what is already gone
-cd - && make down                          # finishes the job, then checks nothing is left
+make aws-login   # a new session
+make down        # recovers, finishes the job, then checks nothing is left
 ```
 
-Check the lock's creation time against the interrupted run before removing it: unlocking a run
-that is still alive lets two processes write the same state. The session end is enforced by AWS
-and not visible locally, so the safe habit is a fresh `aws login` before a `make up` or `make down`
-on a session that is already hours old.
+`make down`, like `make up`, starts with [`scripts/tf-recover.sh`](../../scripts/tf-recover.sh):
+when it finds a lock or an `errored.tfstate`, it removes the lock, uploads the saved state, and
+goes on. It removes a lock only if this machine created it and no Terraform is still running here,
+because unlocking a run that is alive lets two processes write the same state. For any other lock
+it stops and prints the command, which is then a decision to take by hand:
+
+```bash
+cd terraform/envs/demo
+terraform force-unlock <lock-id>           # only once the run that holds it is known to be dead
+terraform state push errored.tfstate       # the newer state, which knows what is already gone
+```
+
+The end of a session is enforced by AWS and visible nowhere on the machine, which only holds
+fifteen-minute credentials. So `make aws-login` writes down when the session started, and `make up`
+and `make down` refuse to start on a session older than ten hours, or of unknown age. This happened
+once before that guard existed: four minutes into a teardown, with the control plane left billing.
