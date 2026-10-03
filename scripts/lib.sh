@@ -97,9 +97,10 @@ for action, verb in verbs.items():
     if not count:
         continue
     total += count
-    types = ", ".join(f"{n} {kind}" for kind, n in sorted(kinds[action].items()))
+    # "\0" keeps each count with its type when the line wraps.
+    types = ", ".join(f"{n}\0{kind}" for kind, n in sorted(kinds[action].items()))
     print(f"  to {verb}: {count}")
-    print(textwrap.fill(types, width=92, initial_indent="    ", subsequent_indent="    "))
+    print(textwrap.fill(types, width=92, initial_indent="    ", subsequent_indent="    ").replace("\0", " "))
 print(total)'
 }
 
