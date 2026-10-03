@@ -13,12 +13,14 @@ source "$(dirname "$0")/lib.sh"
 
 start_log local-up
 started=$SECONDS
+export APPS_STATUS_FILE="$LOG.apps"
+trap 'rm -f "$APPS_STATUS_FILE" "$APPS_STATUS_FILE.tmp"' EXIT
 
 step "k3d cluster" make --no-print-directory local-cluster
 step "Demo API image, built and imported" make --no-print-directory demo-image
 step "Argo CD" make --no-print-directory local-argocd
 step "Root application" make --no-print-directory local-bootstrap
-step "Platform, synced by Argo CD" --progress apps_progress make --no-print-directory local-wait
+step "Platform, synced by Argo CD" --progress apps_progress --detail apps_detail make --no-print-directory local-wait
 
 echo
 echo "The platform is up, in $(duration $((SECONDS - started))). Log: $LOG"
