@@ -12,7 +12,7 @@
 # registry's `latest` tags has been seen to stop silently. The image freshness
 # workflow fails when that happens: see the update at the end of docs/adr/0011.
 
-FROM cgr.dev/chainguard/python:latest-dev@sha256:87729167739190d9309588120a8ac0ffbf2eb95dd895abb9bada6bb9ecbf5a04 AS build
+FROM cgr.dev/chainguard/python:latest-dev@sha256:96cb9c155159daf6b21e70555f244081909ff161c5589112ddf308624c1a1c77 AS build
 USER root
 WORKDIR /install
 COPY requirements.txt .
@@ -20,7 +20,7 @@ COPY requirements.txt .
 # so a Python version bump cannot silently break the import path below.
 RUN pip install --no-cache-dir --target=/install/deps -r requirements.txt
 
-FROM cgr.dev/chainguard/python:latest@sha256:be59f7abb600892c78e6ff0fe1a8f39549da13302dc003c8a5eb1c14b03d995c
+FROM cgr.dev/chainguard/python:latest@sha256:1961420e5f93bd056d4b0b40eca12cdf01b3ed09177aa4d6ec71fab38cbf158f
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/opt/deps
