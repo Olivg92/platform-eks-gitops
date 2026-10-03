@@ -215,17 +215,9 @@ aws-session: aws-profile
 
 .PHONY: up
 up: aws-preflight aws-session ## Create the EKS demo environment (about $0.18/hour, always finish with make down)
-	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false
-	@AWS_PROFILE=$(AWS_PROFILE) scripts/tf-recover.sh $(TF_DEMO)
-	@echo "restricting the Kubernetes API to $(MY_IP)/32"
-	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) apply -input=false $(TF_API_CIDR)
-	@# The profile has to cover the `terraform output` too: a bare prefix applies
-	@# only to the command that follows it, and the substitution runs before that,
-	@# which sent the state read to whatever profile happened to be the default.
-	@name=$$(AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) output -raw cluster_name); \
-	AWS_PROFILE=$(AWS_PROFILE) aws eks update-kubeconfig --region $(AWS_REGION) --name $$name \
-		--kubeconfig $(AWS_KUBECONFIG)
-	@$(MAKE) --no-print-directory aws-argocd aws-bootstrap aws-wait aws-info
+	@# No reference to the make variable on this line: GNU make runs any line that
+	@# names it even under `make -n`, which would start a real deployment.
+	@AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) TF_DIR=$(TF_DEMO) MY_IP=$(MY_IP) scripts/aws-up.sh
 
 .PHONY: aws-argocd
 aws-argocd: ## Install Argo CD on the EKS cluster
@@ -252,11 +244,12 @@ aws-wait: ## Wait for the AWS applications to converge
 .PHONY: aws-info
 aws-info: ## Print how to reach the platform on AWS
 	@echo
-	@echo "Argo CD:  make argocd-ui   then http://localhost:8081 (user: admin)"
-	@echo "Password: make argocd-password"
+	@echo "Check:    make aws-verify"
+	@echo "Argo CD:  make argocd-ui ENV=aws   then http://localhost:8081 (user: admin)"
+	@echo "Password: make argocd-password ENV=aws"
 	@echo "Gateway:  make aws-gateway-url"
 	@echo
-	@echo "Remember: make down when you are finished."
+	@echo "This is billing by the hour: make down when you are finished."
 
 .PHONY: aws-verify
 aws-verify: ## Check the EKS platform end to end
@@ -275,8 +268,6 @@ plan: aws-preflight ## Show what `make up` would create, without creating it
 
 .PHONY: down
 down: aws-preflight aws-session ## Destroy the EKS demo environment and check nothing is left billing
-	@AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=$(TF_DEMO) init -backend-config=backend.hcl -input=false >/dev/null
-	@AWS_PROFILE=$(AWS_PROFILE) scripts/tf-recover.sh $(TF_DEMO)
 	@AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) TF_DIR=$(TF_DEMO) scripts/aws-down.sh
 
 .PHONY: cost

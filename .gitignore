@@ -36,6 +36,9 @@ kubeconfig
 # Personal Makefile settings (AWS_PROFILE and the like)
 local.mk
 
+# What `make up` and `make down` keep of each run
+logs/
+
 # Local-only AI assistant instructions. The personal roadmap lives outside the
 # repository; its entry only keeps a stray copy from being committed.
 CLAUDE.local.md

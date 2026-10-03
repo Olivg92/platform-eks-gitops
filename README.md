@@ -215,11 +215,16 @@ environment creates, and what to change for another region.
 ### Every session
 
 ```bash
-make plan         # what would be created, without creating it
+make plan         # what would be created, in full detail, without creating it
 make up           # VPC, EKS, 2 Spot nodes, Argo CD, then the platform
 make aws-verify   # the same end-to-end check as locally
 make down         # destroy everything, then fail if anything is still billing
 ```
+
+`make up` and `make down` print one line per step, with its duration. Before touching anything
+they summarise the Terraform plan, give the hourly cost, and wait for a `yes`; Terraform then
+applies that very plan rather than computing another. Everything the tools print is kept in
+`logs/`, shown only when a step fails, or all along with `VERBOSE=1`.
 
 Measured on the last session: `make up` takes about 18 minutes, 11 of them in Terraform, most of
 which is the EKS control plane, and 7 for Argo CD to install the platform. `make down` takes 10 to
