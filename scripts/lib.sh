@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Shared by aws-up.sh and aws-down.sh: run each step quietly, keep everything it
-# prints in a log file, and show that log only when a step fails. Terraform
+# Shared by local-up.sh, aws-up.sh and aws-down.sh: run each step quietly, keep
+# everything it prints in a log file, and show that log only when a step fails. Terraform
 # alone prints hundreds of lines for a cluster; what a person needs is which
 # step is running, for how long, and whether it worked.
 #
@@ -23,16 +23,22 @@ duration() {
   fi
 }
 
-# step "label" [--progress function] command...
-# The optional function prints a few words about how far the step is, read
-# from the log: it is shown next to the elapsed time, and kept on the last line.
+# step "label" [--progress function] [--detail function] command...
+# --progress prints a few words on how far the step is: shown next to the
+# elapsed time, and kept on the final line. --detail prints lines to show under
+# the step while it runs, such as each application Argo CD is waiting for: they
+# go away when the step succeeds, and stay when it fails, since they then say
+# what is stuck.
 step() {
-  local label="$1" progress="" started=$SECONDS watcher="" rc=0
+  local label="$1" progress="" detail="" started=$SECONDS watcher="" rc=0 lines
   shift
-  if [ "$1" = "--progress" ]; then
-    progress="$2"
+  while [ "${1:-}" = "--progress" ] || [ "${1:-}" = "--detail" ]; do
+    case "$1" in
+      --progress) progress="$2" ;;
+      --detail) detail="$2" ;;
+    esac
     shift 2
-  fi
+  done
   echo "==> $label" >> "$LOG"
 
   if [ "$VERBOSE" = 1 ]; then
@@ -41,21 +47,41 @@ step() {
     # would otherwise end the script here, before the failure is reported.
     "$@" 2>&1 | tee -a "$LOG" || rc=${PIPESTATUS[0]}
   else
-    # A live line only makes sense on a terminal; a pipe gets the final one.
+    # A live display only makes sense on a terminal; a pipe gets the final line.
+    local stop="$LOG.stop"
     if [ -t 1 ]; then
+      rm -f "$stop"
       (
-        while true; do
-          printf '\r  %-46s %7s  %s\033[K' "$label" "$(duration $((SECONDS - started)))" "$([ -n "$progress" ] && "$progress")"
-          sleep 1
+        shown=0
+        while :; do
+          # Back to the top of what the previous round drew, then over it.
+          if [ "$shown" -gt 0 ]; then printf '\033[%dA' "$shown"; fi
+          printf '\r  %-46s %7s  %s\033[J' "$label" "$(duration $((SECONDS - started)))" "$([ -n "$progress" ] && "$progress")"
+          shown=0
+          if [ -n "$detail" ]; then
+            lines=$("$detail")
+            if [ -n "$lines" ]; then
+              printf '\n%s' "$lines"
+              shown=$(( $(printf '%s\n' "$lines" | wc -l) ))
+            fi
+          fi
+          for _ in 1 2 3 4 5; do
+            [ -f "$stop" ] && break 2
+            sleep 0.2
+          done
         done
+        if [ "$shown" -gt 0 ]; then printf '\033[%dA' "$shown"; fi
+        printf '\r\033[J'
       ) &
       watcher=$!
     fi
     "$@" >> "$LOG" 2>&1 || rc=$?
     if [ -n "$watcher" ]; then
-      kill "$watcher" 2>/dev/null || true
+      # Ask the display to finish its round and wipe itself, rather than kill it
+      # halfway through a list and leave the end of it on the screen.
+      touch "$stop"
       wait "$watcher" 2>/dev/null || true
-      printf '\r\033[K'
+      rm -f "$stop"
     fi
   fi
 
@@ -64,6 +90,10 @@ step() {
     return 0
   fi
   printf '  %-46s %7s  FAILED\n' "$label" "$(duration $((SECONDS - started)))"
+  if [ -n "$detail" ]; then
+    lines=$("$detail")
+    if [ -n "$lines" ]; then printf '%s\n' "$lines"; fi
+  fi
   if [ "$VERBOSE" != 1 ]; then
     # Only what this step printed: the steps before it worked, and are noise here.
     echo
@@ -110,6 +140,27 @@ tf_progress() {
   local finished
   finished=$(grep -cE '(Creation|Modifications|Destruction) complete' "$LOG" 2>/dev/null || true)
   echo "${finished:-0} of $TF_TOTAL resources"
+}
+
+# Each application, in install order: a check mark when it is synced and
+# healthy, otherwise what it is waiting on. Read from the file that
+# scripts/wait-for-apps.sh rewrites at each poll when APPS_STATUS_FILE is set.
+apps_detail() {
+  [ -n "${APPS_STATUS_FILE:-}" ] && [ -s "$APPS_STATUS_FILE" ] || return 0
+  local ok="ok" waiting=".."
+  if [ "$(locale charmap 2>/dev/null)" = "UTF-8" ]; then
+    ok="✓"
+    waiting="…"
+  fi
+  awk -F'\t' -v ok="$ok" -v waiting="$waiting" '
+    $2 == 1 { printf "      %s  %s\n", ok, $1; next }
+            { printf "      %s  %-26s %s\n", waiting, $1, $3 }' "$APPS_STATUS_FILE"
+}
+
+# How far Argo CD is, from the last line scripts/wait-for-apps.sh printed.
+apps_progress() {
+  grep -oE '[0-9]+/[0-9]+ ready|all [0-9]+ applications' "$LOG" | tail -n 1 |
+    sed -E 's|all ([0-9]+) applications|\1/\1 ready|'
 }
 
 # Asks for the one word that commits to the operation. Anything else cancels,

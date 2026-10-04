@@ -27,7 +27,8 @@ export TF_VAR_api_public_access_cidrs="[\"$MY_IP/32\"]"
 
 start_log up
 started=$SECONDS
-trap 'rm -f "$TF_DIR/$PLAN"' EXIT
+export APPS_STATUS_FILE="$LOG.apps"
+trap 'rm -f "$TF_DIR/$PLAN" "$APPS_STATUS_FILE" "$APPS_STATUS_FILE.tmp"' EXIT
 
 step "Terraform init" terraform -chdir="$TF_DIR" init -backend-config=backend.hcl -input=false -no-color
 scripts/tf-recover.sh "$TF_DIR"
@@ -58,15 +59,11 @@ write_kubeconfig() {
   cluster=$(terraform -chdir="$TF_DIR" output -raw cluster_name)
   aws eks update-kubeconfig --region "$REGION" --name "$cluster" --kubeconfig "$KUBECONFIG"
 }
-apps_progress() {
-  grep -oE '[0-9]+/[0-9]+ ready|all [0-9]+ applications' "$LOG" | tail -n 1 |
-    sed -E 's|all ([0-9]+) applications|\1/\1 ready|'
-}
 
 step "Credentials for the new cluster" write_kubeconfig
 step "Argo CD" "$MAKE" --no-print-directory aws-argocd
 step "Root application" "$MAKE" --no-print-directory aws-bootstrap
-step "Platform, synced by Argo CD" --progress apps_progress "$MAKE" --no-print-directory aws-wait
+step "Platform, synced by Argo CD" --progress apps_progress --detail apps_detail "$MAKE" --no-print-directory aws-wait
 
 echo
 echo "The platform is up, in $(duration $((SECONDS - started))). Log: $LOG"

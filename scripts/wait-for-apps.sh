@@ -20,23 +20,41 @@ stable=0
 last=""
 deadline=$(( SECONDS + TIMEOUT ))
 
+# With APPS_STATUS_FILE set, each poll also writes one line per application to
+# that file, in install order: what `make local-up` and `make up` list on screen.
 summarize() {
   kubectl get applications -n "$NS" -o json | python3 -c '
-import json, sys
+import json, os, sys
 ready = watched = 0
 pending = []
+rows = []
 for app in json.load(sys.stdin)["items"]:
     if not (app["spec"].get("syncPolicy") or {}).get("automated"):
         continue  # paused on purpose
     watched += 1
     status = app.get("status", {})
-    sync = status.get("sync", {}).get("status", "Unknown")
-    health = status.get("health", {}).get("status", "Unknown")
+    sync = status.get("sync", {}).get("status") or "Unknown"
+    health = status.get("health", {}).get("status") or "Unknown"
     name = app["metadata"]["name"]
-    if sync == "Synced" and health == "Healthy":
+    done = sync == "Synced" and health == "Healthy"
+    if done:
         ready += 1
     else:
         pending.append(f"{name} ({sync}/{health})")
+    try:
+        wave = int((app["metadata"].get("annotations") or {}).get("argocd.argoproj.io/sync-wave", 0))
+    except ValueError:
+        wave = 0
+    # The root application comes first: it is the one that creates the others.
+    order = -1000 if name.startswith("root-") else wave
+    rows.append((order, name, int(done), health if health != "Healthy" else sync))
+
+path = os.environ.get("APPS_STATUS_FILE")
+if path:
+    with open(path + ".tmp", "w") as f:
+        for _, name, done, state in sorted(rows):
+            f.write(f"{name}\t{done}\t{state}\n")
+    os.replace(path + ".tmp", path)
 print(ready, watched, ", ".join(pending), sep="|")'
 }
 

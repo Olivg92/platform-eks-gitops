@@ -73,7 +73,9 @@ checking the local platform:
 
 `make local-up` creates a two-node k3d cluster running the same Kubernetes version as EKS, installs
 Argo CD with Helm, and applies a single root Application. Argo CD then installs everything else
-from this repository.
+from this repository. It prints one line per step, and while Argo CD syncs, each application
+under it, with what it is still waiting on. What k3d, Docker and Helm print goes to `logs/`,
+shown if a step fails, or all along with `VERBOSE=1`.
 
 When it finishes:
 
