@@ -27,6 +27,9 @@ This is the only stack that is not destroyed at the end of a session.
 
 ## Run it
 
+`make aws-setup` runs it when the account has no state bucket yet, after showing the plan, and
+writes the bucket name where the demo environment reads it. By hand:
+
 ```bash
 export AWS_PROFILE=my-profile                  # the profile of the account to use
 cp terraform.tfvars.example terraform.tfvars   # the account id, and a bucket name unique in the world

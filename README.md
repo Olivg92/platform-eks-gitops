@@ -176,43 +176,30 @@ has finished.
 
 ### First time
 
-1. **Choose the AWS profile.** Any AWS CLI profile allowed to create a VPC, an EKS cluster and IAM
-   roles in the account. The Makefile has no default, on purpose: on a machine that knows several
-   accounts, the wrong default is one keystroke away. Keep it in `local.mk`, which is not committed,
-   and export it for the Terraform commands of the next step:
+```bash
+make aws-setup
+```
 
-   ```bash
-   echo 'AWS_PROFILE := my-profile' >> local.mk
-   export AWS_PROFILE=my-profile
-   make aws-login                                              # only for profiles that use `aws login`
-   aws sts get-caller-identity --query Account --output text   # the account id, asked for below
-   ```
+It asks only what it cannot find out, and says what it decided and why. Running it again is safe:
+it keeps what is there, checks that it still matches the account, and fills in what is missing.
 
-   An `aws login` session ends twelve hours after the login. `make aws-login` notes when it
-   started, and `make up` and `make down` refuse to begin on one that might not last: a teardown
-   cut halfway leaves a cluster billing.
-
-2. **Create the state bucket**, once per account. [`terraform/bootstrap`](terraform/bootstrap/)
-   says what it creates and why:
-
-   ```bash
-   cd terraform/bootstrap
-   cp terraform.tfvars.example terraform.tfvars   # the account id, and a bucket name unique in the world
-   terraform init && terraform apply
-   cd ../..
-   ```
-
-3. **Point the demo environment at it:**
-
-   ```bash
-   cd terraform/envs/demo
-   cp backend.hcl.example backend.hcl             # the bucket name from step 2
-   cp terraform.tfvars.example terraform.tfvars   # the account id
-   cd ../..
-   ```
-
-Everything defaults to `eu-north-1`. [`terraform/envs/demo`](terraform/envs/demo/) lists what the
-environment creates, and what to change for another region.
+- **The AWS profile**, kept in `local.mk`, which is not committed. There is no default, on purpose:
+  on a machine that knows several accounts, the wrong default is one keystroke away. Any profile
+  allowed to create a VPC, an EKS cluster and IAM roles will do.
+- **A session**, for profiles that use `aws login`. It ends twelve hours after the login, and
+  nothing on the machine says when, so its start is noted: `make up` and `make down` refuse to
+  begin on one that might not last, since a teardown cut halfway leaves a cluster billing.
+  `make aws-login` opens a fresh one.
+- **The region**: the one already set, or the one of the state bucket, or the only one the account
+  allows. Accounts from the new AWS sign-up work in a single region, and no call names it: each
+  region is asked for its zones, and only that one answers. The question comes only when several
+  do.
+- **The state bucket**, created once by [`terraform/bootstrap`](terraform/bootstrap/) if the
+  account has none, after showing the plan and waiting for a `yes`. A few cents a month, and the
+  only thing that stays between sessions.
+- **The two files Terraform reads**, in [`terraform/envs/demo`](terraform/envs/demo/): the account
+  id, the region, two zones EKS accepts, and the bucket. That page lists what the environment
+  creates, and how to move it to another region.
 
 ### Every session
 

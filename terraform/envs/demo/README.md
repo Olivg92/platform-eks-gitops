@@ -17,12 +17,13 @@ starts, which is why `make down` deletes it before destroying this stack.
 
 ## Files to create once
 
+`make aws-setup` writes both from the account of the profile, and checks them on every later run.
 Neither is committed: both hold values that belong to one account.
 
-| File | Copy from | What to set |
+| File | What it holds | By hand, copy |
 |---|---|---|
-| `backend.hcl` | `backend.hcl.example` | The state bucket created by [`terraform/bootstrap`](../../bootstrap/) |
-| `terraform.tfvars` | `terraform.tfvars.example` | The AWS account id. Terraform refuses to act on any other account |
+| `backend.hcl` | The state bucket, found in the account or created by [`terraform/bootstrap`](../../bootstrap/) | `backend.hcl.example` |
+| `terraform.tfvars` | The AWS account id, since Terraform refuses to act on any other account; the region, and two zones EKS accepts | `terraform.tfvars.example` |
 
 ## Variables
 
@@ -44,5 +45,6 @@ Three settings name the region, and they have to agree:
 - `AWS_REGION` in `local.mk` at the root of the repository, which `make up` and `make down` use
   for the kubeconfig and for the final check that nothing is left.
 
-The state bucket can stay where it is: `backend.hcl` names the region of the bucket, not the region
-of this environment.
+`make aws-setup` writes the three from the same choice, and stops when they disagree. The state
+bucket can stay where it is: `backend.hcl` names the region of the bucket, not the region of this
+environment.
