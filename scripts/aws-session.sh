@@ -6,6 +6,7 @@
 # and the long operations ask for it before they start.
 #
 #   aws-session.sh login          run `aws login`, then record when it happened
+#                                 (exit 3: the AWS CLI is too old to have it)
 #   aws-session.sh check [hours]  fail unless the session is younger than that
 #
 # Profiles that get credentials another way (SSO, a role, access keys) are only
@@ -22,7 +23,17 @@ hm() { printf '%dh%02d' $(($1 / 3600)) $(($1 % 3600 / 60)); }
 
 case "${1:-}" in
   login)
-    aws login --profile "$AWS_PROFILE"
+    # `aws login` arrived in AWS CLI 2.32.0. An older one only says that the
+    # command does not exist, which does not tell what to do.
+    version=$(aws --version 2>&1 | sed -nE 's|^aws-cli/([0-9.]+).*|\1|p' || true)
+    if [ "$(printf '%s\n' 2.32.0 "$version" | sort -V | head -n 1)" != 2.32.0 ]; then
+      echo "\`aws login\` needs AWS CLI 2.32.0 or later, and this one is ${version:-of an unknown version}. Update it:" >&2
+      echo "  https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html" >&2
+      exit 3
+    fi
+    # LOGIN_REGION answers ahead of time the question `aws login` asks when the
+    # profile has no region yet: make aws-setup passes it.
+    aws login --profile "$AWS_PROFILE" ${LOGIN_REGION:+--region "$LOGIN_REGION"}
     valid || { echo "the login did not give profile $AWS_PROFILE working credentials" >&2; exit 1; }
     mkdir -p "$(dirname "$stamp")"
     date +%s > "$stamp"
