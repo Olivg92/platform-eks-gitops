@@ -63,14 +63,14 @@ export AWS_PROFILE
 say "profile" "$AWS_PROFILE$note"
 
 # --- The session ------------------------------------------------------------------
+uses_login() { [ -n "$(aws configure get login_session --profile "$AWS_PROFILE" 2>/dev/null)" ]; }
+profile_exists() { in_list "$AWS_PROFILE" "$(aws configure list-profiles 2>/dev/null | tr '\n' ' ')"; }
 profile_region=$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null || true)
-uses_login=$(aws configure get login_session --profile "$AWS_PROFILE" 2>/dev/null || true)
-known=$(aws configure list-profiles 2>/dev/null | tr '\n' ' ' || true)
 
 if session=$(scripts/aws-session.sh check 10 2>/dev/null); then
   session=${session#AWS session }
   say "session" "${session:-credentials work}"
-elif [ -n "$uses_login" ] || ! in_list "$AWS_PROFILE" "$known"; then
+elif uses_login || ! profile_exists; then
   # A login without a region asks for one first. Give it the profile's, or the
   # default, which the detection below corrects if the account works elsewhere.
   login_region=${profile_region:-$DEFAULT_REGION}
@@ -93,18 +93,40 @@ fi
 account=$(aws sts get-caller-identity --query Account --output text)
 say "account" "$account"
 
+# --- The region, when it is already decided ------------------------------------------
+tfvars="$TF_DIR/terraform.tfvars"
+backend="$TF_DIR/backend.hcl"
+bucket=$(setting "$backend" bucket)
+bucket_region=$(setting "$backend" region)
+region=$(mk_setting AWS_REGION) reason="set in $LOCAL_MK"
+if [ -z "$region" ] && [ -n "${AWS_REGION:-}" ]; then
+  region=$AWS_REGION reason="from the AWS_REGION variable"
+fi
+if [ -z "$region" ]; then
+  region=$(setting "$tfvars" region) reason="set in $tfvars"
+fi
+if [ -z "$region" ]; then
+  region=$bucket_region reason="where the state bucket is"
+fi
+
 # --- Which regions answer -----------------------------------------------------------
 # No call says which region an account is meant for. Asking each region for its
 # zones does: an account restricted to one region, as those of the new AWS
 # sign-up are, answers in that one and refuses everywhere else. The answers
-# also give the zones to choose from.
+# also give the zones to choose from. A region already decided only needs
+# checking, along with the default region of the profile.
 probe=$(mktemp -d)
 trap 'rm -rf "$probe" "$BOOTSTRAP/setup.tfplan"' EXIT
-regions=""
-for r in us-east-1 ${profile_region:-} "$DEFAULT_REGION"; do
-  regions=$(aws ec2 describe-regions --region "$r" --query 'Regions[].RegionName' --output text 2>/dev/null) && break
-done
-[ -n "$regions" ] || fail "no region answers: may profile $AWS_PROFILE call EC2 at all?"
+if [ -n "$region" ]; then
+  regions=$region
+  if [ -n "$profile_region" ] && [ "$profile_region" != "$region" ]; then regions+=" $profile_region"; fi
+else
+  regions=""
+  for r in us-east-1 ${profile_region:-} "$DEFAULT_REGION"; do
+    regions=$(aws ec2 describe-regions --region "$r" --query 'Regions[].RegionName' --output text 2>/dev/null) && break
+  done
+  [ -n "$regions" ] || fail "no region answers: may profile $AWS_PROFILE call EC2 at all?"
+fi
 (
   # In parallel, with the current credentials passed as variables, which take
   # precedence over the profile: otherwise each call could try to renew the
@@ -123,12 +145,13 @@ for f in "$probe"/*; do
   if [ -e "$f" ]; then allowed+="${f##*/} "; fi
 done
 allowed=${allowed% }
+if [ -n "$region" ] && ! in_list "$region" "$allowed"; then
+  fail "region $region ($reason) does not answer for this account. Fix that setting, or remove it
+so that make aws-setup finds the region itself."
+fi
 [ -n "$allowed" ] || fail "no region lists its zones: may profile $AWS_PROFILE call EC2?"
 
 # --- The state bucket ---------------------------------------------------------------
-backend="$TF_DIR/backend.hcl"
-bucket=$(setting "$backend" bucket)
-bucket_region=$(setting "$backend" region)
 if [ -z "$bucket" ]; then
   # Any region this account answers in will do: the list of buckets is global.
   s3_region=${allowed%% *}
@@ -154,15 +177,6 @@ if [ -z "$bucket" ]; then
 fi
 
 # --- The region, and why --------------------------------------------------------------
-tfvars="$TF_DIR/terraform.tfvars"
-region=$(mk_setting AWS_REGION)
-reason="set in $LOCAL_MK"
-if [ -z "$region" ] && [ -n "${AWS_REGION:-}" ]; then
-  region=$AWS_REGION reason="from the AWS_REGION variable"
-fi
-if [ -z "$region" ]; then
-  region=$(setting "$tfvars" region) reason="set in $tfvars"
-fi
 if [ -z "$region" ] && [ -n "$bucket_region" ]; then
   region=$bucket_region reason="where the state bucket is"
 fi
