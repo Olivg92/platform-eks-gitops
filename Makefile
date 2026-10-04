@@ -94,6 +94,7 @@ local-info: ## Print how to reach Argo CD and the gateway
 	@echo "Password: make argocd-password"
 	@echo "Check:    make local-verify"
 	@echo "Grafana:  https://grafana.platform.local:8443 (user: admin, make grafana-password)"
+	@echo "          or make grafana-ui   then http://localhost:3000, no /etc/hosts needed"
 	@echo "Demo API: https://demo.platform.local:8443"
 	@echo "          both names resolve to 127.0.0.1 once added to /etc/hosts, see the README"
 
@@ -105,7 +106,7 @@ demo-image: ## Build the demo API image and import it into the k3d cluster
 
 .PHONY: demo-load
 demo-load: ## Send traffic to the demo API (make demo-load SECONDS=120 RPS=10)
-	@scripts/demo-traffic.sh load $(or $(SECONDS),60) $(or $(RPS),5)
+	@ENV=$(ENV) scripts/demo-traffic.sh load $(or $(SECONDS),60) $(or $(RPS),5)
 
 .PHONY: demo-break
 demo-break: ## Make the demo API fail (make demo-break RATE=0.3 LATENCY=0)
@@ -139,6 +140,12 @@ local-status: ## Show Argo CD applications and platform pods
 .PHONY: argocd-ui
 argocd-ui: ## Port-forward the Argo CD UI to http://localhost:8081
 	kubectl port-forward -n $(ARGOCD_NS) svc/argocd-server 8081:80
+
+# The gateway is the way in locally, but on EKS it sits behind a load balancer
+# whose address changes with every session: a port-forward works on both.
+.PHONY: grafana-ui
+grafana-ui: ## Port-forward Grafana to http://localhost:3000 (user: admin, make grafana-password)
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
 
 .PHONY: prometheus-ui
 prometheus-ui: ## Port-forward Prometheus to http://localhost:9090 (targets, rules, alerts)
@@ -258,8 +265,10 @@ aws-wait: ## Wait for the AWS applications to converge
 aws-info: ## Print how to reach the platform on AWS
 	@echo
 	@echo "Check:    make aws-verify"
-	@echo "Argo CD:  make argocd-ui ENV=aws   then http://localhost:8081 (user: admin)"
-	@echo "Password: make argocd-password ENV=aws"
+	@echo "Argo CD:  make argocd-ui ENV=aws       then http://localhost:8081 (user: admin, make argocd-password ENV=aws)"
+	@echo "Grafana:  make grafana-ui ENV=aws      then http://localhost:3000 (user: admin, make grafana-password ENV=aws)"
+	@echo "Alerts:   make prometheus-ui ENV=aws   then http://localhost:9090/alerts"
+	@echo "Break it: make demo-break ENV=aws RATE=0.2, make demo-load ENV=aws, then make demo-fix ENV=aws"
 	@echo "Gateway:  make aws-gateway-url"
 	@echo
 	@echo "This is billing by the hour: make down when you are finished."
