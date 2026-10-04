@@ -38,7 +38,9 @@ group() { # title, required (yes|no), tools...
   say "$title"
   for tool in "$@"; do
     if command -v "$tool" >/dev/null 2>&1; then
-      say "$(printf '  ok       %-12s %s' "$tool" "$(version_of "$tool")")"
+      # Versions are for a person reading the report. The quiet check skips them:
+      # checkov and aws take a second or two each to say theirs.
+      say "$(printf '  ok       %-12s %s' "$tool" "$([ "$quiet" = 1 ] || version_of "$tool")")"
     elif [ "$required" = yes ]; then
       say "$(printf '  MISSING  %s' "$tool")"
       missing=1
