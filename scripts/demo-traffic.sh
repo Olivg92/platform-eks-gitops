@@ -6,18 +6,34 @@
 #   demo-traffic.sh fix                    back to healthy
 #   demo-traffic.sh status                 what the API is currently doing
 #
-# Everything goes through the gateway, so the measured path is the real one.
+# Everything goes through the gateway, so the measured path is the real one:
+# on k3d through its port on this machine, on EKS (ENV=aws) through the load
+# balancer in front of it.
 set -uo pipefail
 
-# Local only: default to the local cluster's own kubeconfig, never to
+# Run without make, default to the local cluster's own kubeconfig, never to
 # ~/.kube/config, whose current context may be an unrelated cluster.
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/platform-eks-gitops-local}"
 
 NS="${DEMO_NS:-demo}"
 HOST="${DEMO_HOST:-demo.platform.local}"
-PORT="${DEMO_PORT:-8443}"
-BASE="https://${HOST}:${PORT}"
-CURL=(curl -sk --resolve "${HOST}:${PORT}:127.0.0.1" --max-time 10)
+
+# Where the gateway answers, as "port address": the port k3d maps on this
+# machine, or the load balancer AWS created for it, the way make aws-verify
+# reaches it.
+gateway() {
+  if [ "${ENV:-local}" != aws ]; then
+    echo "${DEMO_PORT:-8443} 127.0.0.1"
+    return
+  fi
+  local lb ip
+  lb=$(kubectl get svc -n envoy-gateway-system -l gateway.envoyproxy.io/owning-gateway-name=platform \
+    -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+  [ -n "$lb" ] || { echo "the gateway has no load balancer yet: is the EKS platform up?" >&2; return 1; }
+  ip=$(getent hosts "$lb" | awk '{print $1; exit}')
+  [ -n "$ip" ] || { echo "the name of the load balancer does not resolve yet: $lb" >&2; return 1; }
+  echo "443 $ip"
+}
 
 # Pods that are serving traffic, which are the only ones where injecting chaos
 # means anything. The phase is not enough in either direction during a rollout:
@@ -33,7 +49,11 @@ running_pods() {
 case "${1:-load}" in
   load)
     seconds="${2:-60}"; rps="${3:-5}"
-    echo "sending ~${rps} req/s to ${BASE}/ for ${seconds}s"
+    target=$(gateway) || exit 1
+    port=${target% *} address=${target#* }
+    BASE="https://${HOST}:${port}"
+    CURL=(curl -sk --resolve "${HOST}:${port}:${address}" --max-time 10)
+    echo "sending ~${rps} req/s to ${BASE}/ (${address}) for ${seconds}s"
     deadline=$(( SECONDS + seconds ))
     sent=0; failed=0
     while (( SECONDS < deadline )); do
