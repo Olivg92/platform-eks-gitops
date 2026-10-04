@@ -192,20 +192,28 @@ MY_IP       ?= $(shell curl -fsS --max-time 5 https://checkip.amazonaws.com || e
 TF_API_CIDR := -var=api_public_access_cidrs=["\"$(MY_IP)/32\""]
 
 # What every AWS target needs before it touches anything: a profile chosen on
-# purpose, the tools, and the two files the README asks to create once.
+# purpose, the tools, and the two files make aws-setup writes.
 .PHONY: aws-profile
 aws-profile:
 	@[ -n "$(AWS_PROFILE)" ] || { \
-		echo "AWS_PROFILE is not set. Export it, or keep it in local.mk:"; \
-		echo "  echo 'AWS_PROFILE := <your profile>' >> local.mk"; exit 1; }
+		echo "AWS_PROFILE is not set: run make aws-setup, which asks for it once and keeps it in local.mk"; \
+		exit 1; }
 
 .PHONY: aws-preflight
 aws-preflight: aws-profile
 	@QUIET=1 scripts/check-tools.sh aws
 	@for f in backend.hcl terraform.tfvars; do \
 		[ -f $(TF_DEMO)/$$f ] || { \
-			echo "$(TF_DEMO)/$$f is missing: copy $$f.example and fill it in, see the README"; exit 1; }; \
+			echo "$(TF_DEMO)/$$f is missing: run make aws-setup, which writes it"; exit 1; }; \
 	done
+
+# The first time on AWS, in one command: the profile, the region, a session,
+# and the two files above. Safe to run again: it keeps what is there, checks
+# that it matches the account, and fills in what is missing.
+.PHONY: aws-setup
+aws-setup: ## First time on AWS: profile, region, session, and the files make up needs
+	@QUIET=1 scripts/check-tools.sh aws
+	@AWS_PROFILE=$(AWS_PROFILE) scripts/aws-setup.sh
 
 # An `aws login` session ends twelve hours after the login. The long operations
 # refuse to start on one that might not last, rather than stop halfway with a
