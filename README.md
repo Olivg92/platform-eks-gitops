@@ -8,6 +8,11 @@ A Kubernetes platform on AWS EKS, run entirely through GitOps: Terraform for the
 everything inside the cluster, secrets that never touch git, and SLOs that page before users
 notice. It runs locally on k3d for free, and on EKS for about $0.18 an hour.
 
+The [guided tour](https://olivg92.github.io/portfolio-site/platform-eks-gitops/) shows it in 18
+steps, from `git clone` to `make down` and the CI, with what each command printed on a real run,
+locally and on AWS. It also exists
+[in French](https://olivg92.github.io/portfolio-site/fr/platform-eks-gitops/).
+
 ## What this repository shows
 
 - **One manifest applied by hand.** Argo CD installs and reconciles everything else from this
