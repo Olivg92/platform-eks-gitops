@@ -8,6 +8,11 @@ A Kubernetes platform on AWS EKS, run entirely through GitOps: Terraform for the
 everything inside the cluster, secrets that never touch git, and SLOs that page before users
 notice. It runs locally on k3d for free, and on EKS for about $0.18 an hour.
 
+The [guided tour](https://olivg92.github.io/portfolio-site/platform-eks-gitops/) shows it in 18
+steps, from `git clone` to `make down` and the CI, with what each command printed on a real run,
+locally and on AWS. It also exists
+[in French](https://olivg92.github.io/portfolio-site/fr/platform-eks-gitops/).
+
 ## What this repository shows
 
 - **One manifest applied by hand.** Argo CD installs and reconciles everything else from this
@@ -101,9 +106,9 @@ and testing a branch.
 
 | Component | Role | Wave |
 |---|---|---|
-| Envoy Gateway | Gateway API implementation, the single entry point ([ADR 0003](docs/adr/0003-gateway-api-with-envoy-gateway.md)) | -1 |
-| cert-manager | Issues the TLS certificate of the gateway listener | -1 |
-| External Secrets Operator | Materialises secrets from a store, so none live in git ([ADR 0005](docs/adr/0005-secrets-with-external-secrets-operator.md)) | -1 |
+| Envoy Gateway | Gateway API implementation, the single entry point ([ADR 0003](docs/adr/0003-gateway-api-with-envoy-gateway.md)) | -2 |
+| cert-manager | Issues the TLS certificate of the gateway listener | -2 |
+| External Secrets Operator | Materialises secrets from a store, so none live in git ([ADR 0005](docs/adr/0005-secrets-with-external-secrets-operator.md)) | -2 |
 | Vault (dev mode) | Local stand-in for AWS Secrets Manager | -1 |
 | kube-prometheus-stack | Prometheus, Alertmanager and Grafana ([ADR 0007](docs/adr/0007-monitoring-baseline-and-slo-generation.md)) | 0 |
 | Sloth | Turns SLO objects into multi-window burn-rate rules | 0 |
