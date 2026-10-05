@@ -1,4 +1,4 @@
-# Wave -1: operators and their CRDs, installed before anything that uses them.
+# Wave -2: operators and their CRDs, before anything that uses them.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

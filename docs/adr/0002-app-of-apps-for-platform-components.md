@@ -36,3 +36,11 @@ that depend on them in wave 0, applications in wave 1.
   `scripts/dev-follow-revision.sh`, which repoints them temporarily.
 - In production this would be paired with a stricter Argo CD project than `default`, restricting
   which repositories, namespaces and cluster-scoped resources each application may touch.
+
+## Update, 2026-10-05: four waves
+
+Adding monitoring, on 2026-09-22, took one more wave. Grafana's admin password is delivered by
+External Secrets Operator, so the secret store and that secret must exist after the operator and
+before kube-prometheus-stack. The order is now: operators and their CRDs in wave -2, the stores,
+issuers and secrets they need in wave -1, the components that consume them in wave 0, and routes
+and workloads in wave 1. The decision itself is unchanged.
