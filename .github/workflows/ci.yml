@@ -23,6 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole history: the secrets scan below reads commits, and needs
+          # the one a pull request starts from.
+          fetch-depth: 0
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -55,6 +59,35 @@ jobs:
       # that only runs in CI is a check nobody can reproduce before pushing.
       - name: Run every pre-commit hook
         run: pre-commit run --all-files --show-diff-on-failure --color always
+
+      # The gitleaks hook reads what is staged, which is right before a commit
+      # and empty on a CI checkout: there it passes whatever the branch holds.
+      # This step reads the commits instead, those of the pull request or of
+      # the push to main, so a secret added then deleted is still caught. The
+      # same gitleaks as the hook, checked against the checksum of its release.
+      # Why the binary and not gitleaks-action: docs/adr/0013.
+      - name: Scan the new commits for secrets
+        env:
+          GITLEAKS_VERSION: 8.30.0
+          GITLEAKS_SHA256: 79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict
+          tar xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            range="$PUSH_BEFORE..$GITHUB_SHA"
+          else
+            # Nothing to start from (a first push, or a commit a force push
+            # dropped): the whole history, which is small.
+            range="$GITHUB_SHA"
+          fi
+          "$RUNNER_TEMP/gitleaks" git --redact --verbose --no-banner --log-opts="$range"
 
   tests:
     name: demo-api tests
