@@ -5,7 +5,7 @@ SHELL := /usr/bin/env bash
 -include local.mk
 
 CLUSTER_NAME   := platform-local
-ARGOCD_CHART   := 10.9.2
+ARGOCD_CHART   := 10.11.6
 ARGOCD_NS      := argocd
 # Branch Argo CD follows. Override while developing: make local-up REVISION=my-branch
 REVISION       ?= main
