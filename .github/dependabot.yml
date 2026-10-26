@@ -40,3 +40,13 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore"
+    # A provider bump is one change, however many roots it touches. Grouped by
+    # dependency name, it comes as one pull request for all five directories
+    # instead of one per directory: a single hashicorp/aws release opened five
+    # (#37 to #41), the default limit, and Terraform updates stopped there.
+    # The group sets no pattern, so every dependency falls in it. The group #19
+    # removed never matched because its pattern was not the name Dependabot
+    # gives the image; with no pattern, there is no name to get wrong.
+    groups:
+      terraform-providers:
+        group-by: dependency-name
