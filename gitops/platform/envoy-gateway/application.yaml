@@ -14,7 +14,7 @@ spec:
     # The upstream chart, pinned. It also installs the Gateway API CRDs.
     - repoURL: docker.io/envoyproxy
       chart: gateway-helm
-      targetRevision: 1.9.1
+      targetRevision: 1.9.3
       helm:
         valueFiles:
           - $values/gitops/platform/envoy-gateway/values.yaml
