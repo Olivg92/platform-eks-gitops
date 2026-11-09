@@ -6,3 +6,18 @@ deployment:
       requests:
         cpu: 50m
         memory: 128Mi
+
+# The proxy image Envoy Gateway deploys by default. Chart 1.9.3 defaults to Envoy
+# v1.39.5, whose distroless image still ships the ca-certificates package that
+# trusts the compromised eMudhra intermediate CAs; v1.39.6 is the same Envoy,
+# rebuilt on the patched package (20250419+deb13u1). Tag and digest, the form of
+# the default it replaces.
+#
+# This is a default only: an EnvoyProxy attached without a mergeType replaces it,
+# and its Gateway falls back to v1.39.5. Hence the same image in the AWS EnvoyProxy,
+# gitops/envs/aws/gateway/envoyproxy.yaml. Remove both once the chart's default is
+# v1.39.6 or later (Envoy Gateway 1.10.0 ships v1.40.2).
+global:
+  images:
+    envoyProxy:
+      image: docker.io/envoyproxy/envoy:distroless-v1.39.6@sha256:1cac8b3a2f72d5a0918f54d7b49e68aae0b0ba325c2d50c8a9a3fff7a4d1f994

@@ -17,3 +17,8 @@ spec:
           service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
       envoyDeployment:
         replicas: 2
+        # This EnvoyProxy has no mergeType, so it replaces the default image set in
+        # gitops/platform/envoy-gateway/values.yaml instead of inheriting it: name
+        # the patched image here too. Why, and when to remove it: see that file.
+        container:
+          image: docker.io/envoyproxy/envoy:distroless-v1.39.6@sha256:1cac8b3a2f72d5a0918f54d7b49e68aae0b0ba325c2d50c8a9a3fff7a4d1f994
