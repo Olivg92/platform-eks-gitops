@@ -98,10 +98,11 @@ print(json.dumps(json.load(sys.stdin)["spec"].get("syncPolicy") or {}))')
 # The root application must run first: it is what creates the other
 # applications. Sync it from here rather than through auto-sync. On a cluster
 # where an earlier run repointed them, auto-sync can only self-heal them back
-# to main, and Argo CD waits longer before each self-heal that follows another
-# one: 2 s, then three times as long each time, up to 5 minutes. By the
-# seventh run in a row, the root waited longer than this script does. A sync
-# started by hand is not a self-heal: it starts at once, and resets that wait.
+# to main, and each self-heal waits longer: from the end of the last
+# operation, Argo CD waits 2 s x 3^(n-1), up to 5 minutes, where n is the
+# self-heal count of the last operation, then stores n+1. By the seventh run in
+# a row, the root waited longer than this script does. A sync started by hand
+# is not a self-heal: it starts at once, and resets that count to 0.
 echo "pausing auto-sync on $ROOT_APP so it does not revert the patches"
 kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
   -p '{"spec":{"syncPolicy":{"automated":null}}}' >/dev/null
