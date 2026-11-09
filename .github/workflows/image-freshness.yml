@@ -28,8 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Chainguard rebuilds daily and Dependabot proposes the bump weekly: a pin
-      # older than two weeks means Dependabot missed at least one.
+      # Chainguard rebuilds daily and Dependabot proposes the bump weekly, but no
+      # new one while its previous pull request is open: a pin older than two
+      # weeks means a bump was left unmerged, or never raised. The script's
+      # message says what to do.
       - name: Check the build date of each pinned base image
         run: scripts/check-base-age.sh apps/demo-api/Dockerfile 14
 
