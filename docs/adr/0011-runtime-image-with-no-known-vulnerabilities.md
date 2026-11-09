@@ -92,3 +92,26 @@ safeguard: the `image freshness` workflow runs every Monday and does two things.
 
 A failed scheduled run sends a notification, so staleness and newly published CVEs both surface
 without anyone having to look.
+
+## Update, 2026-11-09: Python 3.15, and what actually stopped the bumps
+
+Chainguard's free tier moved `latest` and `latest-dev` to Python 3.15 and publishes no `3.14`
+tag. Staying on 3.14 would mean keeping a base that no longer receives fixes, so the image follows
+the tag, as decided above, and CI tests on 3.15 like the runtime. The move was checked like any
+other: the test suite passes on 3.15.2, the image starts under the Deployment's constraints, and
+the scan reports no finding at any severity.
+
+The digests had not moved since the build of 2026-10-02, and the `image freshness` workflow failed
+every Monday from 2026-10-19, as intended. The cause was not the one described in the previous
+update. Dependabot did propose a bump, #35, on 2026-10-10, and it was not merged that week.
+Dependabot records a digest bump under its tag, which is always `latest-dev`, and proposes nothing
+for a version it already has an open pull request for: every weekly run since reported that #35
+already existed. Meanwhile #35's own digests aged past the 14-day limit and gathered four fixable
+critical findings. Once #35 was 30 days old, Dependabot no longer acted on `@dependabot recreate`,
+so the current digests were set by hand on its branch, and it was merged.
+
+Two rules follow. A digest pull request is merged within the week. One that has aged is refreshed
+with `@dependabot recreate` while it is under 30 days old, or by hand on its branch after that,
+then merged. It is never closed: Dependabot does not propose again a version whose pull request was
+closed, and here that version, `latest-dev`, never changes, so a closed one would most likely hold
+back every later bump. And the freshness check stays: it is what made this visible.

@@ -17,7 +17,7 @@ Failure injection is the point: an error budget that never moves teaches nothing
 ## Run it locally
 
 ```bash
-pip install -r requirements-dev.txt   # Python 3.14, like the image
+pip install -r requirements-dev.txt   # Python 3.15, like the image
 uvicorn app.main:app --reload
 pytest
 ```
