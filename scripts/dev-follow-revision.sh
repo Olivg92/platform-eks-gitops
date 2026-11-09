@@ -57,6 +57,44 @@ settle_root() {
   exit 1
 }
 
+# Auto-sync refuses a sync that would prune every resource the application
+# manages, which is what a source that renders nothing asks for ("auto-sync
+# will wipe out all resources"), unless the policy sets allowEmpty. A sync
+# started by hand has no such guard: from a branch that emptied
+# gitops/envs/<env>, the root would prune every application, and through their
+# finalizers everything they deployed, on EKS as well. Apply the same rule to
+# the same input: status.resources is the list the controller hands to that
+# check, written by the same comparison with git. An empty list counts as
+# emptied, as it does there. Reads the root as JSON on stdin and its sync
+# policy as JSON in $1, so it can be tried on a crafted root without a cluster.
+check_not_emptied() {
+  POLICY="$1" python3 -c '
+import json, os, sys
+app = json.load(sys.stdin)
+status = app.get("status") or {}
+resources = status.get("resources") or []
+if (json.loads(os.environ["POLICY"]).get("automated") or {}).get("allowEmpty") \
+        or any(not r.get("requiresPruning") for r in resources):
+    sys.exit(0)
+source = app["spec"].get("source") or {}
+effect = ("prune all %d resources it manages" % len(resources)) if resources \
+    else "leave it empty"
+print("%s renders nothing from %s at %s: a sync would %s. Refusing, as auto-sync"
+      " does: set spec.syncPolicy.automated.allowEmpty to true on it if that is"
+      " intended." % (app["metadata"]["name"], source.get("path"),
+      source.get("targetRevision"), effect), file=sys.stderr)
+# A source Argo CD failed to render looks the same: show its reason, if any.
+for c in status.get("conditions") or []:
+    print("  %s: %s" % (c.get("type"), c.get("message")), file=sys.stderr)
+sys.exit(1)'
+}
+
+# Pausing removes spec.syncPolicy.automated, and allowEmpty with it: keep the
+# policy as applied from git, for the sync below.
+policy=$(kubectl get application "$ROOT_APP" -n "$NS" -o json | python3 -c '
+import json, sys
+print(json.dumps(json.load(sys.stdin)["spec"].get("syncPolicy") or {}))')
+
 # The root application must run first: it is what creates the other
 # applications. Sync it from here rather than through auto-sync. On a cluster
 # where an earlier run repointed them, auto-sync can only self-heal them back
@@ -76,6 +114,10 @@ kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
 # and that sync, if any, has ended. Argo CD caches git state too: have it read
 # the branch again rather than wait a minute.
 settle_root hard
+
+# The reconcile settle_root waited for compared the root with the branch, so
+# its status says what a sync would do now.
+kubectl get application "$ROOT_APP" -n "$NS" -o json | check_not_emptied "$policy" || exit 1
 
 # A sync started by hand does not read the sync policy: give it the options
 # auto-sync would use.
