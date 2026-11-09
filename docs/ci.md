@@ -6,7 +6,7 @@ nobody can reproduce before pushing.
 
 | Job | What it catches |
 |---|---|
-| lint and security | Terraform format, validation, tflint and checkov; kubeconform and yamllint on manifests; gitleaks for secrets; actionlint for the workflows themselves |
+| lint and security | Terraform format, validation, tflint and checkov; kubeconform and yamllint on manifests; gitleaks on every commit of the pull request; actionlint for the workflows themselves |
 | demo-api tests | The pytest suite, including the test that pins the metric labels the SLOs depend on |
 | manifests render | Every kustomization under `gitops/` rendered and validated, 14 today. The environment roots only list Argo CD Applications; the patches that can break live one level down, so each one is rendered |
 | demo-api image | Built and scanned with Trivy when the application changes. Findings go to the Security tab; a fixable critical one fails the build. Published to GHCR on `main` only, tagged with the commit sha |
@@ -15,6 +15,13 @@ nobody can reproduce before pushing.
 
 [`scripts/render-manifests.sh`](../scripts/render-manifests.sh) is the same render check,
 runnable locally.
+
+The gitleaks hook reads what is staged, which is right before a commit and nothing on a CI
+checkout. So the job also runs gitleaks on the commits themselves, those of the pull request or
+of the push to `main`: a secret added then deleted still fails it. The same scan of a branch,
+locally: `gitleaks git --redact --log-opts="origin/main..HEAD"`.
+[ADR 0013](adr/0013-scan-commits-for-secrets-with-the-gitleaks-binary.md) explains why it runs
+the gitleaks binary rather than its GitHub Action.
 
 ## AWS access, through OIDC only
 

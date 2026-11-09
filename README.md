@@ -27,7 +27,7 @@ locally and on AWS. It also exists
   Dependabot.
 - **Cheap by design, and proven.** No NAT Gateway, Spot nodes, a measured cost of $0.18 an hour,
   and a teardown that fails if anything is left billing.
-- **Every non-trivial decision written down**, in [12 decision records](docs/adr/).
+- **Every non-trivial decision written down**, in [13 decision records](docs/adr/).
 
 ## Architecture
 
@@ -276,6 +276,7 @@ the gateway, since Argo CD would otherwise recreate the load balancer it is dele
 | EKS Pod Identity rather than IRSA | No OIDC provider to manage, and the only one of the two this account allows | [0010](docs/adr/0010-pod-identity-for-workload-credentials.md) |
 | Chainguard base image, pinned by digest | Zero known vulnerabilities, against 159 on `python:slim` | [0011](docs/adr/0011-runtime-image-with-no-known-vulnerabilities.md) |
 | CI reaches AWS through OIDC or not at all | No access key as a fallback, even when the account forbids OIDC | [0012](docs/adr/0012-ci-reaches-aws-through-oidc.md) |
+| Secrets scanned in commits, by the gitleaks binary | A secret added then deleted is still in the history; the binary is the hook's version, checked by its checksum | [0013](docs/adr/0013-scan-commits-for-secrets-with-the-gitleaks-binary.md) |
 
 This repository is built with the help of an AI assistant, framed by the rules in
 [CLAUDE.md](CLAUDE.md): cost, security and simplicity constraints it has to respect. Every choice
