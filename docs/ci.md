@@ -6,7 +6,7 @@ nobody can reproduce before pushing.
 
 | Job | What it catches |
 |---|---|
-| lint and security | Terraform format, validation, tflint and checkov; kubeconform and yamllint on manifests; gitleaks on every commit of the pull request; actionlint for the workflows themselves |
+| lint and security | Terraform format, validation, tflint and checkov; kubeconform and yamllint on manifests; gitleaks on every commit of the pull request, and of the whole history on `main`; actionlint for the workflows themselves |
 | demo-api tests | The pytest suite, including the test that pins the metric labels the SLOs depend on |
 | manifests render | Every kustomization under `gitops/` rendered and validated, 14 today. The environment roots only list Argo CD Applications; the patches that can break live one level down, so each one is rendered |
 | demo-api image | Built and scanned with Trivy when the application changes. Findings go to the Security tab; a fixable critical one fails the build. Published to GHCR on `main` only, tagged with the commit sha |
@@ -17,9 +17,11 @@ nobody can reproduce before pushing.
 runnable locally.
 
 The gitleaks hook reads what is staged, which is right before a commit and nothing on a CI
-checkout. So the job also runs gitleaks on the commits themselves, those of the pull request or
-of the push to `main`: a secret added then deleted still fails it. The same scan of a branch,
-locally: `gitleaks git --redact --log-opts="origin/main..HEAD"`.
+checkout. So the job also runs gitleaks on the commits themselves: a secret added then deleted
+still fails it. On a pull request it reads the commits the pull request adds. On `main` it reads
+the whole history, not just what the push brought: merges in quick succession cancel each other's
+runs, and a scan per push would leave the commits of the cancelled runs unscanned. The same scan
+of a branch, locally: `gitleaks git --redact --log-opts="origin/main..HEAD"`.
 [ADR 0013](adr/0013-scan-commits-for-secrets-with-the-gitleaks-binary.md) explains why it runs
 the gitleaks binary rather than its GitHub Action.
 
