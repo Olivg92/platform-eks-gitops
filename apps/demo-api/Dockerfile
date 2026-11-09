@@ -8,9 +8,9 @@
 # and keeps the build and runtime interpreters on the same version, which
 # compiled dependencies (pydantic-core, uvloop) require.
 #
-# Dependabot is configured to propose digest bumps, but its support for this
-# registry's `latest` tags has been seen to stop silently. The image freshness
-# workflow fails when that happens: see the update at the end of docs/adr/0011.
+# Dependabot proposes the digest bumps, but no new one while its previous pull
+# request is open, so one left unmerged holds back every later bump. The image
+# freshness workflow fails when the digests fall behind: see docs/adr/0011.
 
 FROM cgr.dev/chainguard/python:latest-dev@sha256:6b7c43c25f9446e8b1cf850797826a3d40b7cccdc6370c6e1b31cb28adae0a18 AS build
 USER root

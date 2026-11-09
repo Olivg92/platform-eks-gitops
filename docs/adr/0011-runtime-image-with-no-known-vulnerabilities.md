@@ -107,8 +107,9 @@ update. Dependabot did propose a bump, #35, on 2026-10-10, and it was not merged
 Dependabot records a digest bump under its tag, which is always `latest-dev`, and proposes nothing
 for a version it already has an open pull request for: every weekly run since reported that #35
 already existed. Meanwhile #35's own digests aged past the 14-day limit and gathered four fixable
-critical findings. Once #35 was 30 days old, Dependabot no longer acted on `@dependabot recreate`,
-so the current digests were set by hand on its branch, and it was merged.
+critical findings. Dependabot did not react to `@dependabot recreate` on #35, most likely because
+it was by then 30 days old, so the current digests were set by hand on its branch, and it was
+merged.
 
 Two rules follow. A digest pull request is merged within the week. One that has aged is refreshed
 with `@dependabot recreate` while it is under 30 days old, or by hand on its branch after that,

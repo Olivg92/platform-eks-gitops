@@ -6,8 +6,10 @@
 # Chainguard rebuilds its images every day, so the pinned digest differs from the
 # published one almost all the time: comparing the two would fail every run. The
 # age of the pinned build is the useful signal. Dependabot proposes a bump every
-# week, so a pin older than two weeks means it missed at least one: the silent
-# failure described in docs/adr/0011.
+# week, but no new one while its pull request for the image is still open: a pin
+# older than two weeks means that pull request was left unmerged, or that none
+# was raised. The fix is to refresh and merge the open pull request, never to
+# close it, or, with none open, to bump the digests by hand (docs/adr/0011).
 #
 # Reads the registry API directly with an anonymous pull token: no Docker daemon,
 # no extra tool, the same answer locally and in CI.
@@ -50,6 +52,13 @@ for pin in $pins; do
 done
 
 if [ "$stale" -ne 0 ]; then
-  echo "A pinned base image is stale: Dependabot has not bumped it. See docs/adr/0011." >&2
+  cat >&2 <<'EOF'
+A pinned base image is stale. If a Dependabot pull request for it is open, refresh it
+(comment "@dependabot recreate" while it is under 30 days old, otherwise push both
+current digests to its branch) and merge it. Never close it: Dependabot skips a
+version whose pull request was closed, and the version here is always latest-dev, so
+a closed one would most likely stop every later bump. With no pull request open,
+bump both digests by hand. See docs/adr/0011.
+EOF
   exit 1
 fi
