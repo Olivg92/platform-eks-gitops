@@ -120,15 +120,17 @@ settle_root hard
 kubectl get application "$ROOT_APP" -n "$NS" -o json | check_not_emptied "$policy" || exit 1
 
 # A sync started by hand does not read the sync policy: give it the options
-# auto-sync would use.
+# auto-sync would use. That includes the retry strategy: the policy's own if it
+# sets one, 5 attempts otherwise, as the controller does.
 echo "syncing $ROOT_APP so it creates its applications"
-operation=$(kubectl get application "$ROOT_APP" -n "$NS" -o json | python3 -c '
-import json, sys
-policy = json.load(sys.stdin)["spec"].get("syncPolicy") or {}
+operation=$(POLICY="$policy" python3 -c '
+import json, os
+policy = json.loads(os.environ["POLICY"])
+retry = policy.get("retry")
 print(json.dumps({"operation": {
     "initiatedBy": {"username": "dev-follow-revision"},
     "sync": {"prune": True, "syncOptions": policy.get("syncOptions", [])},
-    "retry": {"limit": 5},
+    "retry": retry if retry is not None else {"limit": 5},
 }}))')
 kubectl patch application "$ROOT_APP" -n "$NS" --type merge -p "$operation" >/dev/null
 
