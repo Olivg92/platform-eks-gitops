@@ -10,4 +10,4 @@ images:
   # record of what runs, and the tag never moves under a running pod.
   - name: demo-api
     newName: ghcr.io/olivg92/demo-api
-    newTag: sha-339a41ab09ce513cb197e9571f55c1574c343438
+    newTag: sha-83b6ecb0f97062c5eeb1c5598ab343cc07ad0d16
