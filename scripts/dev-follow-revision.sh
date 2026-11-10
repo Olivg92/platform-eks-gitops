@@ -57,13 +57,63 @@ settle_root() {
   exit 1
 }
 
+# Auto-sync refuses a sync that would prune every resource the application
+# manages, which is what a source that renders nothing asks for ("auto-sync
+# will wipe out all resources"), unless the policy sets allowEmpty. A sync
+# started by hand has no such guard: from a branch that emptied
+# gitops/envs/<env>, the root would prune every application, and through their
+# finalizers everything they deployed, on EKS as well. Apply the same rule to
+# the same input: status.resources is the list the controller hands to that
+# check, written by the same comparison with git. An empty list counts as
+# emptied, as it does there. Reads the root as JSON on stdin and its sync
+# policy as JSON in $1, so it can be tried on a crafted root without a cluster.
+check_not_emptied() {
+  POLICY="$1" python3 -c '
+import json, os, sys
+app = json.load(sys.stdin)
+status = app.get("status") or {}
+resources = status.get("resources") or []
+if (json.loads(os.environ["POLICY"]).get("automated") or {}).get("allowEmpty") \
+        or any(not r.get("requiresPruning") for r in resources):
+    sys.exit(0)
+name = app["metadata"]["name"]
+source = app["spec"].get("source") or {}
+where = "%s at %s" % (source.get("path"), source.get("targetRevision"))
+# A render that failed looks the same: Argo CD then compares with no manifest
+# at all, so every live resource requires pruning. Refuse too, as auto-sync
+# does (the sync status is Unknown), but do not call it empty nor suggest
+# allowEmpty: a typo in the path or a repo-server error is not a reason to
+# allow wiping the platform. Say what failed instead.
+errors = [c for c in status.get("conditions") or []
+          if c.get("type") in ("ComparisonError", "InvalidSpecError")]
+if errors:
+    print("Argo CD could not render %s for %s, not syncing it:" % (where, name),
+          file=sys.stderr)
+    for c in errors:
+        print("  %s: %s" % (c["type"], c.get("message")), file=sys.stderr)
+    sys.exit(1)
+effect = ("prune every resource it manages (%d)" % len(resources)) if resources \
+    else "leave it empty"
+print("%s renders nothing from %s: a sync would %s. Refusing, as auto-sync"
+      " does: set spec.syncPolicy.automated.allowEmpty to true on it if that is"
+      " intended." % (name, where, effect), file=sys.stderr)
+sys.exit(1)'
+}
+
+# Pausing removes spec.syncPolicy.automated, and allowEmpty with it: keep the
+# policy as applied from git, for the sync below.
+policy=$(kubectl get application "$ROOT_APP" -n "$NS" -o json | python3 -c '
+import json, sys
+print(json.dumps(json.load(sys.stdin)["spec"].get("syncPolicy") or {}))')
+
 # The root application must run first: it is what creates the other
 # applications. Sync it from here rather than through auto-sync. On a cluster
 # where an earlier run repointed them, auto-sync can only self-heal them back
-# to main, and Argo CD waits longer before each self-heal that follows another
-# one: 2 s, then three times as long each time, up to 5 minutes. By the
-# seventh run in a row, the root waited longer than this script does. A sync
-# started by hand is not a self-heal: it starts at once, and resets that wait.
+# to main, and each self-heal waits longer: from the end of the last
+# operation, Argo CD waits 2 s x 3^(n-1), up to 5 minutes, where n is the
+# self-heal count of the last operation, then stores n+1. By the seventh run in
+# a row, the root waited longer than this script does. A sync started by hand
+# is not a self-heal: it starts at once, and resets that count to 0.
 echo "pausing auto-sync on $ROOT_APP so it does not revert the patches"
 kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
   -p '{"spec":{"syncPolicy":{"automated":null}}}' >/dev/null
@@ -77,16 +127,28 @@ kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
 # the branch again rather than wait a minute.
 settle_root hard
 
+# The reconcile settle_root waited for compared the root with the branch, so
+# its status says what a sync would do now. Refusing leaves the root paused,
+# which prunes nothing but would surprise whoever looks at it next: say so,
+# and how to undo it (root-local and root-aws come from local- and
+# aws-bootstrap).
+if ! kubectl get application "$ROOT_APP" -n "$NS" -o json | check_not_emptied "$policy"; then
+  echo "$ROOT_APP is left paused on $REVISION: 'make ${ROOT_APP#root-}-bootstrap' hands it back to main" >&2
+  exit 1
+fi
+
 # A sync started by hand does not read the sync policy: give it the options
-# auto-sync would use.
+# auto-sync would use. That includes the retry strategy: the policy's own if it
+# sets one, 5 retries otherwise, as the controller does.
 echo "syncing $ROOT_APP so it creates its applications"
-operation=$(kubectl get application "$ROOT_APP" -n "$NS" -o json | python3 -c '
-import json, sys
-policy = json.load(sys.stdin)["spec"].get("syncPolicy") or {}
+operation=$(POLICY="$policy" python3 -c '
+import json, os
+policy = json.loads(os.environ["POLICY"])
+retry = policy.get("retry")
 print(json.dumps({"operation": {
     "initiatedBy": {"username": "dev-follow-revision"},
     "sync": {"prune": True, "syncOptions": policy.get("syncOptions", [])},
-    "retry": {"limit": 5},
+    "retry": retry if retry is not None else {"limit": 5},
 }}))')
 kubectl patch application "$ROOT_APP" -n "$NS" --type merge -p "$operation" >/dev/null
 

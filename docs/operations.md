@@ -40,7 +40,10 @@ the default one.
 Applications committed here track `main`, which is the source of truth. To try a branch before
 merging it, push the branch and run `make local-up REVISION=my-branch`: the root Application
 follows that branch and [`scripts/dev-follow-revision.sh`](../scripts/dev-follow-revision.sh)
-repoints the others at it.
+repoints the others at it. If the branch leaves `gitops/envs/<env>` rendering nothing, the script
+stops before syncing the root, as auto-sync would, rather than let it prune every application. It
+also stops if Argo CD cannot render that directory, and prints why. Either way the root is left
+paused on the branch: `make local-bootstrap` hands it back to `main`.
 
 ## Tearing down AWS
 
