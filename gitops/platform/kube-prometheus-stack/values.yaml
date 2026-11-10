@@ -29,7 +29,7 @@ alertmanager:
 grafana:
   # The stack's default, Grafana 13.2.2, misses the security fixes of 13.2.3,
   # 13.2.4 and 13.2.5, three of them rated High. No 91.x release of the stack
-  # ships a fixed Grafana: the first to do so is 92.15.0, with 13.3.0. Remove
+  # ships all these fixes: the first to do so is 92.15.0, with 13.3.0. Remove
   # this pin when the stack moves to 92.15.0 or later, 93.x included, or it
   # would downgrade Grafana. Exact version, no digest: as for the other
   # Kubernetes images, see CKV_K8S_43 in .checkov.yaml.
