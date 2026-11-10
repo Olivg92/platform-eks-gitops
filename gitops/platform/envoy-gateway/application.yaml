@@ -14,6 +14,9 @@ spec:
     # The upstream chart, pinned. It also installs the Gateway API CRDs.
     - repoURL: docker.io/envoyproxy
       chart: gateway-helm
+      # 1.9.3 runs an overridden proxy image (see values.yaml). When bumping past
+      # 1.9.x, drop that override and the one in gitops/envs/aws/gateway/envoyproxy.yaml,
+      # so the new controller deploys the proxy it was released with.
       targetRevision: 1.9.3
       helm:
         valueFiles:
