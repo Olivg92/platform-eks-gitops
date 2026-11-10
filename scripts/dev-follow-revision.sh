@@ -139,7 +139,7 @@ fi
 
 # A sync started by hand does not read the sync policy: give it the options
 # auto-sync would use. That includes the retry strategy: the policy's own if it
-# sets one, 5 attempts otherwise, as the controller does.
+# sets one, 5 retries otherwise, as the controller does.
 echo "syncing $ROOT_APP so it creates its applications"
 operation=$(POLICY="$policy" python3 -c '
 import json, os
