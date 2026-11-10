@@ -76,16 +76,27 @@ resources = status.get("resources") or []
 if (json.loads(os.environ["POLICY"]).get("automated") or {}).get("allowEmpty") \
         or any(not r.get("requiresPruning") for r in resources):
     sys.exit(0)
+name = app["metadata"]["name"]
 source = app["spec"].get("source") or {}
-effect = ("prune all %d resources it manages" % len(resources)) if resources \
+where = "%s at %s" % (source.get("path"), source.get("targetRevision"))
+# A render that failed looks the same: Argo CD then compares with no manifest
+# at all, so every live resource requires pruning. Refuse too, as auto-sync
+# does (the sync status is Unknown), but do not call it empty nor suggest
+# allowEmpty: a typo in the path or a repo-server error is not a reason to
+# allow wiping the platform. Say what failed instead.
+errors = [c for c in status.get("conditions") or []
+          if c.get("type") in ("ComparisonError", "InvalidSpecError")]
+if errors:
+    print("Argo CD could not render %s for %s, not syncing it:" % (where, name),
+          file=sys.stderr)
+    for c in errors:
+        print("  %s: %s" % (c["type"], c.get("message")), file=sys.stderr)
+    sys.exit(1)
+effect = ("prune every resource it manages (%d)" % len(resources)) if resources \
     else "leave it empty"
-print("%s renders nothing from %s at %s: a sync would %s. Refusing, as auto-sync"
+print("%s renders nothing from %s: a sync would %s. Refusing, as auto-sync"
       " does: set spec.syncPolicy.automated.allowEmpty to true on it if that is"
-      " intended." % (app["metadata"]["name"], source.get("path"),
-      source.get("targetRevision"), effect), file=sys.stderr)
-# A source Argo CD failed to render looks the same: show its reason, if any.
-for c in status.get("conditions") or []:
-    print("  %s: %s" % (c.get("type"), c.get("message")), file=sys.stderr)
+      " intended." % (name, where, effect), file=sys.stderr)
 sys.exit(1)'
 }
 
