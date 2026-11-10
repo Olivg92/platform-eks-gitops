@@ -128,8 +128,14 @@ kubectl patch application "$ROOT_APP" -n "$NS" --type merge \
 settle_root hard
 
 # The reconcile settle_root waited for compared the root with the branch, so
-# its status says what a sync would do now.
-kubectl get application "$ROOT_APP" -n "$NS" -o json | check_not_emptied "$policy" || exit 1
+# its status says what a sync would do now. Refusing leaves the root paused,
+# which prunes nothing but would surprise whoever looks at it next: say so,
+# and how to undo it (root-local and root-aws come from local- and
+# aws-bootstrap).
+if ! kubectl get application "$ROOT_APP" -n "$NS" -o json | check_not_emptied "$policy"; then
+  echo "$ROOT_APP is left paused on $REVISION: 'make ${ROOT_APP#root-}-bootstrap' hands it back to main" >&2
+  exit 1
+fi
 
 # A sync started by hand does not read the sync policy: give it the options
 # auto-sync would use. That includes the retry strategy: the policy's own if it
